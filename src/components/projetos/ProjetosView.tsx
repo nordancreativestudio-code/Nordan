@@ -6,7 +6,7 @@ import { Gaveta } from "@/components/Gaveta";
 import { useToast } from "@/components/Toast";
 import {
   ESTADOS, MARCAS, PRIORIDADES, RESPONSAVEIS, TIPOS, dataCurta, nul, tabelaEmFalta,
-  type Estado, type Projeto, type Tarefa,
+  fmtTempo, type Estado, type Projeto, type Registo, type Tarefa,
 } from "@/lib/tipos";
 
 type CliMin = { id: string; nome: string };
@@ -31,12 +31,18 @@ export function ProjetosView() {
   const [arrasta, setArrasta] = useState<string | null>(null);
   const [sobre, setSobre] = useState<Estado | null>(null);
   const [novaTarefa, setNovaTarefa] = useState("");
+  const [registos, setRegistos] = useState<Registo[]>([]);
+  const [semTempo, setSemTempo] = useState(false);
+  const [meuId, setMeuId] = useState<string | null>(null);
+  const [agora, setAgora] = useState(() => Date.now());
 
   const carregar = useCallback(async () => {
-    const [p, c, t] = await Promise.all([
+    const [p, c, t, rg, eu] = await Promise.all([
       sb.from("projetos").select("*").order("ordem").order("criado_em"),
       sb.from("clientes").select("id,nome").order("nome"),
       sb.from("tarefas").select("*").order("ordem").order("criado_em"),
+      sb.from("registos_tempo").select("tarefa_id,utilizador_id,inicio,fim"),
+      sb.auth.getUser(),
     ]);
     const e = p.error ?? c.error ?? t.error;
     if (e) {
@@ -48,9 +54,18 @@ export function ProjetosView() {
     setProjetos(p.data as Projeto[]);
     setClientes(c.data as CliMin[]);
     setTarefas(t.data as Tarefa[]);
+    // sem a migração 0003 o resto do kanban continua a funcionar, só sem cronómetro
+    setSemTempo(!!rg.error);
+    setRegistos(rg.error ? [] : (rg.data as Registo[]));
+    setMeuId(eu.data.user?.id ?? null);
   }, [sb]);
 
   useEffect(() => { Promise.resolve().then(carregar); }, [carregar]);
+  useEffect(() => {
+    const t = setInterval(() => setAgora(Date.now()), 1000);
+    window.addEventListener("nordan:cronometro", carregar);
+    return () => { clearInterval(t); window.removeEventListener("nordan:cronometro", carregar); };
+  }, [carregar]);
   useEffect(() => {
     const h = () => setForm({ estado: "Para fazer", prioridade: "Média", responsavel: "André", visivel_ao_cliente: false });
     window.addEventListener("nordan:novo", h);
@@ -106,6 +121,17 @@ export function ProjetosView() {
     toast("Projeto apagado");
     setForm(null);
     carregar();
+  }
+
+  const segundos = (id: string) =>
+    registos.filter((r) => r.tarefa_id === id).reduce(
+      (s, r) => s + Math.max(0, ((r.fim ? Date.parse(r.fim) : agora) - Date.parse(r.inicio)) / 1000), 0);
+  const aMinha = (id: string) => registos.some((r) => r.tarefa_id === id && !r.fim && r.utilizador_id === meuId);
+  async function alternaCronometro(id: string) {
+    const r = aMinha(id) ? await sb.rpc("parar_cronometro") : await sb.rpc("iniciar_cronometro", { p_tarefa: id });
+    if (r.error) return toast("Erro: " + r.error.message);
+    carregar();
+    window.dispatchEvent(new Event("nordan:cronometro"));
   }
 
   async function addTarefa() {
@@ -260,11 +286,23 @@ export function ProjetosView() {
               <div className="ckl">
                 {tarefasForm.map((t) => (
                   <div className={"it" + (t.concluida ? " done" : "")} key={t.id}>
-                    <input type="checkbox" checked={t.concluida} onChange={(e) => mudaTarefa(t.id, { concluida: e.target.checked })} aria-label="Concluída" />
-                    <input className="tt" defaultValue={t.titulo} onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== t.titulo) mudaTarefa(t.id, { titulo: v }); }} />
-                    <input className="in dt" type="date" title="Prazo estimado" value={t.prazo_estimado ?? ""} onChange={(e) => mudaTarefa(t.id, { prazo_estimado: e.target.value || null })} />
-                    <label className="vis" title="Visível ao cliente"><input type="checkbox" checked={t.visivel_ao_cliente} onChange={(e) => mudaTarefa(t.id, { visivel_ao_cliente: e.target.checked })} />cliente</label>
-                    <button className="x" type="button" onClick={() => apagaTarefa(t.id)} aria-label="Apagar tarefa">×</button>
+                    <div className="l1">
+                      <input type="checkbox" checked={t.concluida} onChange={(e) => mudaTarefa(t.id, { concluida: e.target.checked })} aria-label="Concluída" />
+                      <input className="tt" defaultValue={t.titulo} onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== t.titulo) mudaTarefa(t.id, { titulo: v }); }} />
+                      {!semTempo && (<>
+                        <button type="button" className={"crb" + (aMinha(t.id) ? " on" : "")} onClick={() => alternaCronometro(t.id)}
+                          title={aMinha(t.id) ? "Pausar" : "Iniciar"} aria-label={aMinha(t.id) ? "Pausar cronómetro" : "Iniciar cronómetro"}>
+                          {aMinha(t.id) ? "❚❚" : "▶"}
+                        </button>
+                        <span className={"cron num" + (aMinha(t.id) ? " on" : "")}>{fmtTempo(segundos(t.id))}</span>
+                      </>)}
+                      <button className="x" type="button" onClick={() => apagaTarefa(t.id)} aria-label="Apagar tarefa">×</button>
+                    </div>
+                    <div className="l2">
+                      <input className="in dt" type="date" title="Prazo estimado" value={t.prazo_estimado ?? ""} onChange={(e) => mudaTarefa(t.id, { prazo_estimado: e.target.value || null })} />
+                      <label className="vis" title="Visível ao cliente"><input type="checkbox" checked={t.visivel_ao_cliente} onChange={(e) => mudaTarefa(t.id, { visivel_ao_cliente: e.target.checked })} />cliente</label>
+                      {!semTempo && <label className="vis" title="Mostrar o tempo total ao cliente"><input type="checkbox" checked={!!t.mostrar_tempo_ao_cliente} onChange={(e) => mudaTarefa(t.id, { mostrar_tempo_ao_cliente: e.target.checked })} />tempo ao cliente</label>}
+                    </div>
                   </div>
                 ))}
               </div>

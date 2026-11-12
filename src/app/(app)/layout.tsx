@@ -1,5 +1,6 @@
 import { Rail } from "@/components/Rail";
 import { Top } from "@/components/Top";
+import { VerificaCronometro } from "@/components/VerificaCronometro";
 import { ToastProvider } from "@/components/Toast";
 import { exigirAutorizado } from "@/lib/autorizacao";
 
@@ -14,6 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="scroll">{children}</div>
       </div>
     </div>
+    <VerificaCronometro />
     </ToastProvider>
   );
 }

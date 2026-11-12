@@ -25,6 +25,14 @@ export type Projeto = {
 export type Tarefa = {
   id: string; projeto_id: string; titulo: string; concluida: boolean; prazo: string | null;
   prazo_estimado: string | null; ordem: number; visivel_ao_cliente: boolean;
+  mostrar_tempo_ao_cliente?: boolean;
+};
+export type Registo = { tarefa_id: string; utilizador_id: string; inicio: string; fim: string | null };
+
+/** 3725 s → "1h 2m" */
+export const fmtTempo = (seg: number) => {
+  const m = Math.floor(Math.max(0, seg) / 60);
+  return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
 };
 
 /** "" → null, texto aparado */
