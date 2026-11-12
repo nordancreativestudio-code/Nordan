@@ -40,7 +40,8 @@ export async function atualizarSessao(request: NextRequest) {
     url.search = "";
     return NextResponse.redirect(url);
   }
-  if (user && pathname === "/login") {
+  // Com ?erro= o login mostra o aviso e nunca redireciona (evita ciclos).
+  if (user && pathname === "/login" && !request.nextUrl.searchParams.has("erro")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";

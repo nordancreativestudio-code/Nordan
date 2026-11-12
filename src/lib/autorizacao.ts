@@ -16,11 +16,11 @@ export async function exigirAutorizado() {
   const { data: autorizado, error } = await supabase.rpc("autorizado");
   if (error) {
     // A função ainda não existe na base de dados (migração por correr).
-    redirect("/login?erro=migracao");
+    redirect("/auth/recusar?motivo=migracao");
   }
   if (!autorizado) {
-    await supabase.auth.signOut();
-    redirect("/login?erro=nao-autorizado");
+    // O signOut tem de correr num Route Handler (apaga os cookies); aí volta ao login com aviso.
+    redirect("/auth/recusar?motivo=nao-autorizado");
   }
   return { supabase, user };
 }
