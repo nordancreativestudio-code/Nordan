@@ -65,8 +65,8 @@ create trigger utilizadores_so_autorizados
   before insert on auth.users
   for each row execute function public.bloquear_nao_autorizados();
 
--- 4) Os dois emails autorizados: apaga o "-- " do início das linhas 69 a 72 e troca os emails.
--- insert into public.utilizadores_autorizados (email, nome) values
---   ('email-do-nuno@exemplo.pt', 'Nuno'),
---   ('email-do-andre@exemplo.pt', 'André')
--- on conflict (email) do nothing;
+-- 4) Os dois emails autorizados.
+insert into public.utilizadores_autorizados (email, nome) values
+  ('nordancreativestudio@gmail.com', 'Nordan Creative Studio'),
+  ('nunograva@gmail.com', 'Nuno')
+on conflict (email) do nothing;
