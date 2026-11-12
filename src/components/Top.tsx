@@ -7,6 +7,7 @@ export function Top() {
   const pathname = usePathname();
   const base = "/" + (pathname.split("/")[1] ?? "");
   const v = VMAP[base] ?? VMAP["/"];
+  const podeCriar = base === "/clientes" || base === "/projetos";
   return (
     <header className="top">
       <h1>{v.n}</h1>
@@ -20,7 +21,7 @@ export function Top() {
         </svg>
         <span className="bdg" />
       </button>
-      <button className="btn pri" type="button" disabled>+ Novo</button>
+      <button className="btn pri" type="button" disabled={!podeCriar} onClick={() => window.dispatchEvent(new Event("nordan:novo"))}>+ Novo</button>
     </header>
   );
 }
