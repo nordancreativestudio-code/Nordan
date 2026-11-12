@@ -26,13 +26,17 @@ create unique index if not exists registos_um_aberto_por_pessoa
 
 -- 3) RLS: autorizados leem tudo; escrevem só nos seus próprios registos
 alter table public.registos_tempo enable row level security;
+drop policy if exists "autorizados leem registos" on public.registos_tempo;
 create policy "autorizados leem registos" on public.registos_tempo
   for select to authenticated using (public.autorizado());
+drop policy if exists "autorizados criam os seus registos" on public.registos_tempo;
 create policy "autorizados criam os seus registos" on public.registos_tempo
   for insert to authenticated with check (public.autorizado() and utilizador_id = auth.uid());
+drop policy if exists "autorizados alteram os seus registos" on public.registos_tempo;
 create policy "autorizados alteram os seus registos" on public.registos_tempo
   for update to authenticated using (public.autorizado() and utilizador_id = auth.uid())
   with check (public.autorizado() and utilizador_id = auth.uid());
+drop policy if exists "autorizados apagam os seus registos" on public.registos_tempo;
 create policy "autorizados apagam os seus registos" on public.registos_tempo
   for delete to authenticated using (public.autorizado() and utilizador_id = auth.uid());
 revoke all on public.registos_tempo from anon;

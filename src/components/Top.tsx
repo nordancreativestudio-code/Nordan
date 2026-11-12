@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { VMAP } from "./vistas";
+import { CronometroAtivo } from "./CronometroAtivo";
 
 export function Top() {
   const pathname = usePathname();
@@ -13,6 +14,7 @@ export function Top() {
       <h1>{v.n}</h1>
       {v.sub && <span className="sub">{v.sub}</span>}
       <div className="spacer" />
+      <CronometroAtivo />
       <input className="srch" type="search" placeholder="Procurar…" aria-label="Procurar" disabled />
       <button className="btn sino" title="Novidades" aria-label="Novidades" type="button">
         <svg viewBox="0 0 16 16" aria-hidden="true">

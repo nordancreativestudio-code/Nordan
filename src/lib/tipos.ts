@@ -25,15 +25,25 @@ export type Projeto = {
 export type Tarefa = {
   id: string; projeto_id: string; titulo: string; concluida: boolean; prazo: string | null;
   prazo_estimado: string | null; ordem: number; visivel_ao_cliente: boolean;
-  mostrar_tempo_ao_cliente?: boolean;
+  mostrar_tempo_ao_cliente?: boolean; responsavel?: string | null; descricao?: string | null;
 };
-export type Registo = { tarefa_id: string; utilizador_id: string; inicio: string; fim: string | null };
+export type Registo = { id: string; tarefa_id: string; utilizador_id: string; inicio: string; fim: string | null };
+export type TempoTarefa = { tarefa_id: string; projeto_id: string; segundos: number; abertos: number };
 
-/** 3725 s → "1h 2m" */
-export const fmtTempo = (seg: number) => {
-  const m = Math.floor(Math.max(0, seg) / 60);
-  return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+/** 3725 s → "1h 2m"; com segundos (cronómetro a correr) → "1h 02m 05s" */
+export const fmtTempo = (seg: number, comSegundos = false) => {
+  const t = Math.floor(Math.max(0, seg));
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+  if (!comSegundos) return h ? `${h}h ${m}m` : `${m}m`;
+  const p = (n: number) => String(n).padStart(2, "0");
+  return h ? `${h}h ${p(m)}m ${p(s)}s` : `${m}m ${p(s)}s`;
 };
+/** ISO → valor de <input type="datetime-local"> na hora local, e o inverso */
+export const paraInputLocal = (iso: string) => {
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+};
+export const deInputLocal = (v: string) => new Date(v).toISOString();
 
 /** "" → null, texto aparado */
 export const nul = (v: unknown) => {

@@ -6,7 +6,8 @@ import { Gaveta } from "@/components/Gaveta";
 import { useToast } from "@/components/Toast";
 import {
   ESTADOS, MARCAS, PRIORIDADES, RESPONSAVEIS, TIPOS, dataCurta, nul, tabelaEmFalta,
-  fmtTempo, type Estado, type Projeto, type Registo, type Tarefa,
+  deInputLocal, fmtTempo, paraInputLocal,
+  type Estado, type Projeto, type Registo, type Tarefa, type TempoTarefa,
 } from "@/lib/tipos";
 
 type CliMin = { id: string; nome: string };
@@ -35,14 +36,18 @@ export function ProjetosView() {
   const [semTempo, setSemTempo] = useState(false);
   const [meuId, setMeuId] = useState<string | null>(null);
   const [agora, setAgora] = useState(() => Date.now());
+  const [tempos, setTempos] = useState<Record<string, TempoTarefa>>({});
+  const [lidoEm, setLidoEm] = useState(() => Date.now());
+  const [aberta, setAberta] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
-    const [p, c, t, rg, eu] = await Promise.all([
+    const [p, c, t, rg, eu, tt] = await Promise.all([
       sb.from("projetos").select("*").order("ordem").order("criado_em"),
       sb.from("clientes").select("id,nome").order("nome"),
       sb.from("tarefas").select("*").order("ordem").order("criado_em"),
-      sb.from("registos_tempo").select("tarefa_id,utilizador_id,inicio,fim"),
+      sb.from("registos_tempo").select("id,tarefa_id,utilizador_id,inicio,fim").order("inicio"),
       sb.auth.getUser(),
+      sb.from("tempos_tarefa").select("tarefa_id,projeto_id,segundos,abertos"),
     ]);
     const e = p.error ?? c.error ?? t.error;
     if (e) {
@@ -55,8 +60,11 @@ export function ProjetosView() {
     setClientes(c.data as CliMin[]);
     setTarefas(t.data as Tarefa[]);
     // sem a migração 0003 o resto do kanban continua a funcionar, só sem cronómetro
-    setSemTempo(!!rg.error);
+    // (sem a 0005 também: os totais vêm da view tempos_tarefa)
+    setSemTempo(!!rg.error || !!tt.error);
     setRegistos(rg.error ? [] : (rg.data as Registo[]));
+    setTempos(tt.error ? {} : Object.fromEntries((tt.data as TempoTarefa[]).map((x) => [x.tarefa_id, x])));
+    setLidoEm(Date.now());
     setMeuId(eu.data.user?.id ?? null);
   }, [sb]);
 
@@ -123,15 +131,42 @@ export function ProjetosView() {
     carregar();
   }
 
-  const segundos = (id: string) =>
-    registos.filter((r) => r.tarefa_id === id).reduce(
-      (s, r) => s + Math.max(0, ((r.fim ? Date.parse(r.fim) : agora) - Date.parse(r.inicio)) / 1000), 0);
+  // total vindo da base de dados + o que passou desde a leitura, por cada cronómetro a correr
+  const segundos = (id: string) => {
+    const t = tempos[id];
+    return t ? t.segundos + (t.abertos * Math.max(0, agora - lidoEm)) / 1000 : 0;
+  };
+  const aCorrer = (id: string) => (tempos[id]?.abertos ?? 0) > 0;
   const aMinha = (id: string) => registos.some((r) => r.tarefa_id === id && !r.fim && r.utilizador_id === meuId);
+  const avisa = () => window.dispatchEvent(new Event("nordan:cronometro")); // recarrega aqui e no topo
   async function alternaCronometro(id: string) {
     const r = aMinha(id) ? await sb.rpc("parar_cronometro") : await sb.rpc("iniciar_cronometro", { p_tarefa: id });
     if (r.error) return toast("Erro: " + r.error.message);
-    carregar();
-    window.dispatchEvent(new Event("nordan:cronometro"));
+    avisa();
+  }
+  async function mudaRegisto(id: string, campos: Partial<Registo>) {
+    const r = await sb.from("registos_tempo").update(campos).eq("id", id);
+    if (r.error) toast(/check/i.test(r.error.message) ? "O fim não pode ser antes do início" : "Erro: " + r.error.message);
+    avisa();
+  }
+  async function apagaRegisto(id: string) {
+    if (!confirm("Apagar este registo de tempo?")) return;
+    const r = await sb.from("registos_tempo").delete().eq("id", id);
+    if (r.error) return toast("Erro: " + r.error.message);
+    avisa();
+  }
+  async function moveTarefa(id: string, dir: -1 | 1) {
+    const ts = doProjeto(form?.id);
+    const i = ts.findIndex((t) => t.id === id), j = i + dir;
+    if (i < 0 || j < 0 || j >= ts.length) return;
+    const nova = [...ts];
+    [nova[i], nova[j]] = [nova[j], nova[i]];
+    const mud = nova.map((t, k) => ({ id: t.id, ordem: k + 1 })).filter((m, k) => nova[k].ordem !== m.ordem);
+    const ord = Object.fromEntries(nova.map((t, k) => [t.id, k + 1]));
+    setTarefas((all) => all.map((t) => (ord[t.id] ? { ...t, ordem: ord[t.id] } : t)).sort((a, b) => a.ordem - b.ordem));
+    const rs = await Promise.all(mud.map((m) => sb.from("tarefas").update({ ordem: m.ordem }).eq("id", m.id)));
+    const e = rs.find((r) => r.error)?.error;
+    if (e) { toast("Erro: " + e.message); carregar(); }
   }
 
   async function addTarefa() {
@@ -195,6 +230,7 @@ export function ProjetosView() {
                 {cartoes.length === 0 && <div className="vz">Sem projetos</div>}
                 {cartoes.map((p) => {
                   const ts = doProjeto(p.id), feitas = ts.filter((t) => t.concluida).length;
+                  const tot = ts.reduce((s, t) => s + segundos(t.id), 0), corre = ts.some((t) => aCorrer(t.id));
                   const atraso = !!p.prazo && p.prazo < hoje() && p.estado !== "Concluído";
                   return (
                     <article
@@ -210,6 +246,11 @@ export function ProjetosView() {
                       <div className="meta">
                         <span className={"pill " + (p.prioridade === "Urgente" ? "coral" : p.prioridade === "Alta" ? "amber" : "")}>{p.prioridade}</span>
                         {p.prazo && <span className={"prazo" + (atraso ? " atraso" : "")}>{dataCurta(p.prazo)}</span>}
+                        {(tot > 0 || corre) && (
+                          <span className={"tcard num" + (corre ? " on" : "")} title={corre ? "Cronómetro a correr" : "Tempo total"}>
+                            {corre && <i className="dot on" />}{fmtTempo(tot)}
+                          </span>
+                        )}
                         <span className="faint" style={{ marginLeft: "auto" }}>{p.responsavel}</span>
                       </div>
                       {ts.length > 0 && (
@@ -284,27 +325,70 @@ export function ProjetosView() {
           <div className="fld"><label>Tarefas{tarefasForm.length ? ` (${tarefasForm.filter((t) => t.concluida).length}/${tarefasForm.length})` : ""}</label>
             {!form.id ? <div className="dica">Guarda o projeto para poderes adicionar tarefas.</div> : (<>
               <div className="ckl">
-                {tarefasForm.map((t) => (
+                {tarefasForm.map((t, k) => {
+                  const minha = aMinha(t.id), corre = aCorrer(t.id);
+                  const regs = registos.filter((r) => r.tarefa_id === t.id);
+                  return (
                   <div className={"it" + (t.concluida ? " done" : "")} key={t.id}>
                     <div className="l1">
                       <input type="checkbox" checked={t.concluida} onChange={(e) => mudaTarefa(t.id, { concluida: e.target.checked })} aria-label="Concluída" />
                       <input className="tt" defaultValue={t.titulo} onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== t.titulo) mudaTarefa(t.id, { titulo: v }); }} />
                       {!semTempo && (<>
-                        <button type="button" className={"crb" + (aMinha(t.id) ? " on" : "")} onClick={() => alternaCronometro(t.id)}
-                          title={aMinha(t.id) ? "Pausar" : "Iniciar"} aria-label={aMinha(t.id) ? "Pausar cronómetro" : "Iniciar cronómetro"}>
-                          {aMinha(t.id) ? "❚❚" : "▶"}
+                        <button type="button" className={"crb" + (minha ? " on" : "")} onClick={() => alternaCronometro(t.id)}
+                          title={minha ? "Pausar" : "Iniciar"} aria-label={minha ? "Pausar cronómetro" : "Iniciar cronómetro"}>
+                          {minha ? "❚❚" : "▶"}
                         </button>
-                        <span className={"cron num" + (aMinha(t.id) ? " on" : "")}>{fmtTempo(segundos(t.id))}</span>
+                        <span className={"cron num" + (corre ? " on" : "")}>{fmtTempo(segundos(t.id), corre)}</span>
                       </>)}
-                      <button className="x" type="button" onClick={() => apagaTarefa(t.id)} aria-label="Apagar tarefa">×</button>
                     </div>
                     <div className="l2">
-                      <input className="in dt" type="date" title="Prazo estimado" value={t.prazo_estimado ?? ""} onChange={(e) => mudaTarefa(t.id, { prazo_estimado: e.target.value || null })} />
-                      <label className="vis" title="Visível ao cliente"><input type="checkbox" checked={t.visivel_ao_cliente} onChange={(e) => mudaTarefa(t.id, { visivel_ao_cliente: e.target.checked })} />cliente</label>
-                      {!semTempo && <label className="vis" title="Mostrar o tempo total ao cliente"><input type="checkbox" checked={!!t.mostrar_tempo_ao_cliente} onChange={(e) => mudaTarefa(t.id, { mostrar_tempo_ao_cliente: e.target.checked })} />tempo ao cliente</label>}
+                      <select className="in mini-in" title="Responsável" value={t.responsavel ?? ""} onChange={(e) => mudaTarefa(t.id, { responsavel: e.target.value || null })}>
+                        <option value="">Responsável</option>
+                        {RESPONSAVEIS.map((r) => <option key={r}>{r}</option>)}
+                      </select>
+                      <input className="in dt" type="date" title="Prazo" value={t.prazo ?? ""} onChange={(e) => mudaTarefa(t.id, { prazo: e.target.value || null })} />
+                      <span className="spacer" />
+                      <button className="x" type="button" disabled={k === 0} onClick={() => moveTarefa(t.id, -1)} aria-label="Subir tarefa" title="Subir">↑</button>
+                      <button className="x" type="button" disabled={k === tarefasForm.length - 1} onClick={() => moveTarefa(t.id, 1)} aria-label="Descer tarefa" title="Descer">↓</button>
+                      <button className="btn sm" type="button" onClick={() => setAberta(aberta === t.id ? null : t.id)} aria-expanded={aberta === t.id}>
+                        {aberta === t.id ? "Fechar" : "Detalhes"}
+                      </button>
+                      <button className="x" type="button" onClick={() => apagaTarefa(t.id)} aria-label="Apagar tarefa" title="Apagar">×</button>
                     </div>
+                    {aberta === t.id && (
+                      <div className="l3">
+                        <textarea className="in" placeholder="Descrição" defaultValue={t.descricao ?? ""}
+                          onBlur={(e) => { const v = e.target.value.trim() || null; if (v !== (t.descricao ?? null)) mudaTarefa(t.id, { descricao: v }); }} />
+                        <div className="l2" style={{ paddingLeft: 0 }}>
+                          <label className="vis">Prazo estimado
+                            <input className="in dt" type="date" value={t.prazo_estimado ?? ""} onChange={(e) => mudaTarefa(t.id, { prazo_estimado: e.target.value || null })} /></label>
+                          <label className="vis"><input type="checkbox" checked={t.visivel_ao_cliente} onChange={(e) => mudaTarefa(t.id, { visivel_ao_cliente: e.target.checked })} />Visível ao cliente</label>
+                          {!semTempo && <label className="vis"><input type="checkbox" checked={!!t.mostrar_tempo_ao_cliente} onChange={(e) => mudaTarefa(t.id, { mostrar_tempo_ao_cliente: e.target.checked })} />Mostrar tempo ao cliente</label>}
+                        </div>
+                        {!semTempo && (<>
+                          <div className="cap">Registos de tempo ({regs.length})</div>
+                          {regs.length === 0 && <div className="dica">Sem registos. Carrega em play para começar.</div>}
+                          {regs.map((r) => {
+                            const meu = r.utilizador_id === meuId;
+                            return (
+                              <div className="reg" key={r.id + r.inicio + (r.fim ?? "")}>
+                                <input className="in" type="datetime-local" aria-label="Início" disabled={!meu} defaultValue={paraInputLocal(r.inicio)}
+                                  onBlur={(e) => { if (e.target.value && e.target.value !== paraInputLocal(r.inicio)) mudaRegisto(r.id, { inicio: deInputLocal(e.target.value) }); }} />
+                                {r.fim ? (
+                                  <input className="in" type="datetime-local" aria-label="Fim" disabled={!meu} defaultValue={paraInputLocal(r.fim)}
+                                    onBlur={(e) => { if (e.target.value && e.target.value !== paraInputLocal(r.fim!)) mudaRegisto(r.id, { fim: deInputLocal(e.target.value) }); }} />
+                                ) : <span className="pill lime">a correr</span>}
+                                {!meu && <span className="dica">do colega</span>}
+                                {meu && <button className="x" type="button" onClick={() => apagaRegisto(r.id)} aria-label="Apagar registo" title="Apagar registo">×</button>}
+                              </div>
+                            );
+                          })}
+                        </>)}
+                      </div>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
                 <input className="in" placeholder="Nova tarefa…" value={novaTarefa} onChange={(e) => setNovaTarefa(e.target.value)}
