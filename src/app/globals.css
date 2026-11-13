@@ -386,3 +386,33 @@ select.in{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 /* ————— portal do cliente ————— */
 .portal{position:relative;z-index:1;display:flex;flex-direction:column;height:100dvh;overflow:hidden}
 @media(max-width:760px){.portal{height:auto;min-height:100dvh;overflow:visible}}
+
+/* ————— listas editáveis (workflow, passos, conteúdos, formulários, páginas do portal) ————— */
+.elista{display:flex;flex-direction:column}
+.elinha{padding:6px 0 8px 9px;border-bottom:1px solid var(--line-soft);border-left:3px solid transparent}
+.elinha .l1,.elinha .l2{display:flex;align-items:center;gap:6px}
+.elinha .l2{flex-wrap:wrap;gap:8px;padding-left:24px}
+.elinha .l3{padding:8px 0 0 24px;display:flex;flex-direction:column;gap:6px}
+.elinha .n{width:18px;flex:none;font-size:11px;color:var(--faint)}
+.elinha .tt{background:none;border:none;flex:1;min-width:0;padding:6px 2px;border-bottom:1px solid transparent;font-weight:500}
+.elinha .tt:focus{outline:none;border-bottom-color:var(--line)}
+.elinha .in.larga{flex:1 1 100%;padding:5px 8px;font-size:12.5px}
+.elinha .mini-in{width:auto;padding:3px 26px 3px 8px;font-size:11.5px}
+.elinha .dt{width:126px;padding:3px 6px;font-size:11.5px}
+.elinha .vis{font-size:11px;color:var(--moss);display:flex;align-items:center;gap:6px;cursor:pointer}
+.elinha .vis input[type=checkbox]{accent-color:var(--lime);width:14px;height:14px;margin:0}
+.elinha button.x{color:var(--faint);font-size:15px;width:26px;height:26px;flex:none;border-radius:8px}
+.elinha button.x:hover:not(:disabled){color:var(--mist);background:var(--panel)}
+.elinha button.x:disabled{opacity:.3;cursor:default}
+.elinha.atual{border-left-color:var(--lime)}
+.elinha.feito .tt{color:var(--moss)}
+.elinha.est-para_aprovacao{border-left-color:var(--amber)}
+.elinha.est-alteracoes_pedidas{border-left-color:var(--coral)}
+.elinha.est-aprovado{border-left-color:var(--lime)}
+.enovo{display:flex;gap:8px;align-items:center;margin-top:8px}
+details.grp>.conteudo{padding:2px 12px 12px;display:flex;flex-direction:column;gap:8px}
+.conversa>summary{cursor:pointer;font-size:11.5px;color:var(--moss)}
+.conversa>summary:hover{color:var(--mist)}
+.msg{padding:7px 10px;border:1px solid var(--line-soft);border-radius:var(--rs);background:var(--panel);font-size:13px;margin-top:6px}
+.msg.cliente{border-color:color-mix(in srgb,var(--sky) 35%,transparent)}
+.msg .quem{font-size:11px;color:var(--moss);margin-bottom:2px}

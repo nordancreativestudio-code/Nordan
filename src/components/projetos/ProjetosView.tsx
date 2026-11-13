@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Gaveta } from "@/components/Gaveta";
 import { useToast } from "@/components/Toast";
 import { pc, useEquipa } from "@/components/Equipa";
+import { ProjetoPortal } from "@/components/portal/ProjetoPortal";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ESTADOS, MARCAS, PRIORIDADES, RESPONSAVEIS, TIPOS, dataCurta, nul, tabelaEmFalta,
@@ -413,6 +414,7 @@ export function ProjetosView() {
               </div>
             </>)}
           </div>
+          {form.id && <ProjetoPortal key={form.id} projetoId={form.id} />}
         </>)}
       </Gaveta>
     </>

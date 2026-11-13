@@ -26,7 +26,10 @@ export const VISTAS: { g: string; v: Vista[] }[] = [
   },
   {
     g: "Definições",
-    v: [{ k: "definicoes", href: "/definicoes", n: "Equipa", ic: "◍", sub: "pessoas e cores" }],
+    v: [
+      { k: "definicoes", href: "/definicoes", n: "Equipa", ic: "◍", sub: "pessoas e cores" },
+      { k: "conteudo-portal", href: "/conteudo-portal", n: "Conteúdo do portal", ic: "❖", sub: "o que o cliente lê" },
+    ],
   },
 ];
 export const VMAP: Record<string, Vista> = {};
