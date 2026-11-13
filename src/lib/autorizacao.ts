@@ -19,6 +19,9 @@ export async function exigirAutorizado() {
     redirect("/auth/recusar?motivo=migracao");
   }
   if (!autorizado) {
+    // Cliente convidado para o portal: não entra no painel interno, vai para o portal.
+    const { data: meus } = await supabase.rpc("portal_meus_clientes");
+    if (Array.isArray(meus) && meus.length > 0) redirect("/portal");
     // O signOut tem de correr num Route Handler (apaga os cookies); aí volta ao login com aviso.
     redirect("/auth/recusar?motivo=nao-autorizado");
   }

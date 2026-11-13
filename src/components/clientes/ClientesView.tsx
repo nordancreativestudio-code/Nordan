@@ -21,6 +21,29 @@ export function ClientesView() {
   const [erro, setErro] = useState<string | null>(null);
   const [form, setForm] = useState<Form | null>(null);
   const [a_guardar, setAGuardar] = useState(false);
+  const [convites, setConvites] = useState<{ id: string; email: string; utilizador_id: string | null }[] | null>(null);
+  const [novoEmail, setNovoEmail] = useState("");
+
+  const lerConvites = useCallback(async (clienteId: string) => {
+    const r = await sb.from("clientes_utilizadores").select("id,email,utilizador_id").eq("cliente_id", clienteId).order("criado_em");
+    setConvites(r.error ? null : r.data); // null = migração 0007 por correr
+  }, [sb]);
+  const abrir = (c: Cliente) => { setForm(c); setNovoEmail(""); setConvites(null); lerConvites(c.id); };
+  async function convidar() {
+    const email = novoEmail.trim().toLowerCase();
+    if (!form?.id || !/^\S+@\S+\.\S+$/.test(email)) return toast("Escreve um email válido");
+    const r = await sb.from("clientes_utilizadores").insert({ cliente_id: form.id, email });
+    if (r.error) return toast(r.error.code === "23505" ? "Esse email já tem acesso" : "Erro: " + r.error.message);
+    toast("Acesso criado. O cliente entra pelo ecrã de login com esse email.");
+    setNovoEmail("");
+    lerConvites(form.id);
+  }
+  async function retirar(id: string, email: string) {
+    if (!form?.id || !confirm(`Retirar o acesso de ${email} ao portal?`)) return;
+    const r = await sb.from("clientes_utilizadores").delete().eq("id", id);
+    if (r.error) return toast("Erro: " + r.error.message);
+    lerConvites(form.id);
+  }
 
   const carregar = useCallback(async () => {
     const [c, p] = await Promise.all([
@@ -88,7 +111,7 @@ export function ClientesView() {
         <thead><tr><th>Cliente</th><th>Setor</th><th>Contacto</th><th>Telefone</th><th>Localidade</th><th style={{ textAlign: "right" }}>Projetos em curso</th></tr></thead>
         <tbody>
           {lista.map((c) => (
-            <tr key={c.id} onClick={() => setForm(c)}>
+            <tr key={c.id} onClick={() => abrir(c)}>
               <td><b style={{ fontWeight: 500 }}>{c.nome}</b></td>
               <td>{c.setor ? <span className="pill">{c.setor}</span> : <span className="faint">—</span>}</td>
               <td>{c.contacto ?? <span className="faint">—</span>}</td>
@@ -153,6 +176,26 @@ export function ClientesView() {
                 <div className="rollup"><div className="cap">Pendente</div><div className="v">0 €</div></div>
               </div>
               <div className="dica">Passa a vir das Finanças quando essa secção existir.</div>
+            </div>
+            <div className="fld full"><label>Portal do cliente</label>
+              {convites === null ? <div className="dica">Disponível depois de correr a migração 0007_portal.sql.</div> : (<>
+                {convites.length === 0 && <div className="dica">Ninguém deste cliente tem acesso ao portal.</div>}
+                <div className="lista">
+                  {convites.map((c) => (
+                    <div className="li" key={c.id}>
+                      <span className="nm">{c.email}</span>
+                      <span className={"pill" + (c.utilizador_id ? " lime" : "")}>{c.utilizador_id ? "já entrou" : "ainda não entrou"}</span>
+                      <button className="btn sm dgr" type="button" onClick={() => retirar(c.id, c.email)}>Retirar</button>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input className="in" type="email" placeholder="email do cliente" value={novoEmail} onChange={(e) => setNovoEmail(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); convidar(); } }} />
+                  <button className="btn" type="button" onClick={convidar}>Convidar para o portal</button>
+                </div>
+                <div className="dica">O convite não envia email. O cliente abre o endereço do painel, escreve este email e recebe o link de acesso. Só vê projetos marcados como “Visível ao cliente”.</div>
+              </>)}
             </div>
             <div className="fld full"><label>Projetos ({doCliente.length})</label>
               {doCliente.length === 0 ? <div className="dica">Sem projetos para este cliente.</div> : (
