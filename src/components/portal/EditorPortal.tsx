@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/Toast";
 import { TITULO_FORM } from "@/lib/tipos";
@@ -64,10 +64,12 @@ export function EditorPortal() {
               <button key={t} type="button" className={"sb" + (form === t ? " on" : "")} onClick={() => setForm(t)}>{TITULO_FORM[t]}</button>
             ))}
           </div>
-          <Cabecalho key={form} tipo={form} />
-          <h3>Perguntas</h3>
-          <EditorLista key={form} tabela="formularios_modelo" filtro={{ tipo: form }} campos={CAMPOS_PERGUNTA} placeholder="Nova pergunta…"
-            vazio={<div className="dica">Sem perguntas. O cliente só vê o formulário quando houver pelo menos uma.</div>} />
+          <Fragment key={form}>
+            <Cabecalho tipo={form} />
+            <h3>Perguntas</h3>
+            <EditorLista tabela="formularios_modelo" filtro={{ tipo: form }} campos={CAMPOS_PERGUNTA} placeholder="Nova pergunta…"
+              vazio={<div className="dica">Sem perguntas. O cliente só vê o formulário quando houver pelo menos uma.</div>} />
+          </Fragment>
         </div>
       )}
       {aba === "Ferramentas e Comunicação" && (
