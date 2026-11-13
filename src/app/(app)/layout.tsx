@@ -1,6 +1,7 @@
 import { Rail } from "@/components/Rail";
 import { Top } from "@/components/Top";
 import { VerificaCronometro } from "@/components/VerificaCronometro";
+import { EquipaProvider } from "@/components/Equipa";
 import { ToastProvider } from "@/components/Toast";
 import { exigirAutorizado } from "@/lib/autorizacao";
 
@@ -8,6 +9,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { user } = await exigirAutorizado();
   return (
     <ToastProvider>
+    <EquipaProvider>
     <div className="app">
       <Rail email={user.email ?? ""} />
       <div className="main">
@@ -16,6 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </div>
     </div>
     <VerificaCronometro />
+    </EquipaProvider>
     </ToastProvider>
   );
 }

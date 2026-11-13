@@ -24,6 +24,10 @@ export const VISTAS: { g: string; v: Vista[] }[] = [
       { k: "novidades", href: "/novidades", n: "Novidades", ic: "◌" },
     ],
   },
+  {
+    g: "Definições",
+    v: [{ k: "definicoes", href: "/definicoes", n: "Equipa", ic: "◍", sub: "pessoas e cores" }],
+  },
 ];
 export const VMAP: Record<string, Vista> = {};
 VISTAS.forEach((g) => g.v.forEach((v) => (VMAP[v.href] = v)));

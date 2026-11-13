@@ -357,3 +357,28 @@ select.in{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 .reg{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .reg .in{width:auto;flex:1 1 150px;padding:4px 7px;font-size:11.5px}
 @media(max-width:760px){.cronativo .nm{display:none}}
+
+/* ————— cor por pessoa (--pc vem da base de dados; sem cor usa o valor por omissão) ————— */
+.crb.on{background:var(--pc,var(--lime));border-color:var(--pc,var(--lime))}
+.crb.on:hover{background:var(--pc,#F2FF6B);filter:brightness(1.12)}
+.cron.on,.tcard.on{color:var(--pc,var(--lime))}
+.dot.on{background:var(--pc,var(--lime));box-shadow:0 0 10px 2px color-mix(in srgb,var(--pc,var(--lime)) 65%,transparent)}
+.seg .sb{display:inline-flex;align-items:center;gap:6px}
+.seg .sb .cdot,.resp-n .cdot,.resp-n{--n:var(--pc,var(--faint))}
+.seg .sb .cdot,.resp-n .cdot{background:var(--n)}
+.seg .sb.on{color:var(--pc,var(--lime));border-color:color-mix(in srgb,var(--pc,var(--lime)) 45%,transparent);background:color-mix(in srgb,var(--pc,var(--lime)) 14%,transparent)}
+.resp-n{margin-left:auto;display:inline-flex;align-items:center;gap:5px;color:var(--pc,var(--faint))}
+.cronativos{display:flex;gap:8px;min-width:0;overflow-x:auto;scrollbar-width:none}
+.cronativos::-webkit-scrollbar{display:none}
+.cronativo{flex:none;border-color:color-mix(in srgb,var(--pc,var(--lime)) 55%,transparent);background:color-mix(in srgb,var(--pc,var(--lime)) 12%,transparent)}
+.cronativo .abre{display:flex;align-items:center;gap:8px;min-width:0;padding:0}
+.cronativo .abre:hover .nm{color:#fff}
+.cronativo b{font-weight:700;font-size:11.5px;color:var(--pc,var(--lime));letter-spacing:0}
+.cronativo .nm small{color:var(--moss);font-size:11.5px}
+.pessoa .avatar{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;flex:none;font-weight:700;font-size:12px;letter-spacing:0;
+  color:var(--pc,var(--moss));border:1.5px solid var(--pc,var(--line));background:color-mix(in srgb,var(--pc,transparent) 14%,transparent)}
+.pessoa .nm{white-space:normal;line-height:1.3}
+.amostras{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.amostra{width:22px;height:22px;border-radius:50%;border:2px solid transparent;padding:0;flex:none}
+.amostra.on{border-color:var(--mist);box-shadow:0 0 0 2px var(--abyss) inset}
+.amostras input[type=color]{width:26px;height:26px;padding:0;border:1px solid var(--line);border-radius:7px;background:var(--panel);cursor:pointer}

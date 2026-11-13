@@ -2,6 +2,8 @@ export const ESTADOS = ["Para fazer", "Em andamento", "Standby", "Em aprovação
 export type Estado = (typeof ESTADOS)[number];
 export const PRIORIDADES = ["Baixa", "Média", "Alta", "Urgente"] as const;
 export const RESPONSAVEIS = ["André", "Nuno", "Ambos", "Outro"] as const;
+/** Cores de pessoa sugeridas no ecrã Equipa (o lima e o coral estão reservados). */
+export const PALETA_PESSOAS = ["#55D3FF", "#FFC93C", "#B48CFF", "#FF8FC7", "#5CE0B0", "#FF9F5A"];
 export const MARCAS = ["Nordan Creative", "Nordan Family"];
 export const TIPOS = ["Fotografia", "Vídeo", "Edição", "Marketing", "Social", "Impressão", "Reunião", "Outro"];
 export const SETORES = [

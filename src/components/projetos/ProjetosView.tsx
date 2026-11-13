@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Gaveta } from "@/components/Gaveta";
 import { useToast } from "@/components/Toast";
+import { pc, useEquipa } from "@/components/Equipa";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ESTADOS, MARCAS, PRIORIDADES, RESPONSAVEIS, TIPOS, dataCurta, nul, tabelaEmFalta,
   deInputLocal, fmtTempo, paraInputLocal,
@@ -22,6 +24,9 @@ const hoje = () => new Date().toISOString().slice(0, 10);
 export function ProjetosView() {
   const [sb] = useState(() => createClient());
   const toast = useToast();
+  const { corDeNome, corDeId } = useEquipa();
+  const router = useRouter();
+  const pedido = useSearchParams().get("projeto");
   const [projetos, setProjetos] = useState<Projeto[] | null>(null);
   const [clientes, setClientes] = useState<CliMin[]>([]);
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
@@ -80,6 +85,13 @@ export function ProjetosView() {
     return () => window.removeEventListener("nordan:novo", h);
   }, []);
 
+  // ?projeto=<id> (vindo das pills do topo): abre a gaveta desse projeto
+  useEffect(() => {
+    if (!pedido || !projetos) return;
+    const p = projetos.find((x) => x.id === pedido);
+    Promise.resolve().then(() => { if (p) setForm(p); router.replace("/projetos"); });
+  }, [pedido, projetos, router]);
+
   const nomeCli = useMemo(() => Object.fromEntries(clientes.map((c) => [c.id, c.nome])), [clientes]);
   const visiveis = useMemo(
     () => (projetos ?? []).filter((p) => resp === "Todos" || p.responsavel === resp || p.responsavel === "Ambos"),
@@ -136,6 +148,7 @@ export function ProjetosView() {
     const t = tempos[id];
     return t ? t.segundos + (t.abertos * Math.max(0, agora - lidoEm)) / 1000 : 0;
   };
+  const corQuemCorre = (id: string) => corDeId(registos.find((r) => r.tarefa_id === id && !r.fim)?.utilizador_id);
   const aCorrer = (id: string) => (tempos[id]?.abertos ?? 0) > 0;
   const aMinha = (id: string) => registos.some((r) => r.tarefa_id === id && !r.fim && r.utilizador_id === meuId);
   const avisa = () => window.dispatchEvent(new Event("nordan:cronometro")); // recarrega aqui e no topo
@@ -206,7 +219,9 @@ export function ProjetosView() {
       <div className="bar-ferr">
         <div className="seg" role="group" aria-label="Filtrar por responsável">
           {["Todos", "André", "Nuno"].map((r) => (
-            <button key={r} type="button" className={"sb" + (resp === r ? " on" : "")} onClick={() => setResp(r)}>{r}</button>
+            <button key={r} type="button" className={"sb" + (resp === r ? " on" : "")} style={pc(corDeNome(r))} onClick={() => setResp(r)}>
+              {corDeNome(r) && <i className="cdot" />}{r}
+            </button>
           ))}
         </div>
       </div>
@@ -231,6 +246,7 @@ export function ProjetosView() {
                 {cartoes.map((p) => {
                   const ts = doProjeto(p.id), feitas = ts.filter((t) => t.concluida).length;
                   const tot = ts.reduce((s, t) => s + segundos(t.id), 0), corre = ts.some((t) => aCorrer(t.id));
+                  const corCorre = corQuemCorre(ts.find((t) => aCorrer(t.id))?.id ?? "");
                   const atraso = !!p.prazo && p.prazo < hoje() && p.estado !== "Concluído";
                   return (
                     <article
@@ -247,11 +263,11 @@ export function ProjetosView() {
                         <span className={"pill " + (p.prioridade === "Urgente" ? "coral" : p.prioridade === "Alta" ? "amber" : "")}>{p.prioridade}</span>
                         {p.prazo && <span className={"prazo" + (atraso ? " atraso" : "")}>{dataCurta(p.prazo)}</span>}
                         {(tot > 0 || corre) && (
-                          <span className={"tcard num" + (corre ? " on" : "")} title={corre ? "Cronómetro a correr" : "Tempo total"}>
+                          <span className={"tcard num" + (corre ? " on" : "")} style={pc(corCorre)} title={corre ? "Cronómetro a correr" : "Tempo total"}>
                             {corre && <i className="dot on" />}{fmtTempo(tot)}
                           </span>
                         )}
-                        <span className="faint" style={{ marginLeft: "auto" }}>{p.responsavel}</span>
+                        <span className="resp-n" style={pc(corDeNome(p.responsavel))}><i className="cdot" />{p.responsavel}</span>
                       </div>
                       {ts.length > 0 && (
                         <div className="bar-n">
@@ -334,11 +350,11 @@ export function ProjetosView() {
                       <input type="checkbox" checked={t.concluida} onChange={(e) => mudaTarefa(t.id, { concluida: e.target.checked })} aria-label="Concluída" />
                       <input className="tt" defaultValue={t.titulo} onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== t.titulo) mudaTarefa(t.id, { titulo: v }); }} />
                       {!semTempo && (<>
-                        <button type="button" className={"crb" + (minha ? " on" : "")} onClick={() => alternaCronometro(t.id)}
+                        <button type="button" className={"crb" + (minha ? " on" : "")} style={pc(corDeId(meuId))} onClick={() => alternaCronometro(t.id)}
                           title={minha ? "Pausar" : "Iniciar"} aria-label={minha ? "Pausar cronómetro" : "Iniciar cronómetro"}>
                           {minha ? "❚❚" : "▶"}
                         </button>
-                        <span className={"cron num" + (corre ? " on" : "")}>{fmtTempo(segundos(t.id), corre)}</span>
+                        <span className={"cron num" + (corre ? " on" : "")} style={pc(corQuemCorre(t.id))}>{fmtTempo(segundos(t.id), corre)}</span>
                       </>)}
                     </div>
                     <div className="l2">
