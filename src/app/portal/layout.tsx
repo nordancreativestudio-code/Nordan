@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { redirect } from "next/navigation";
+import { ToastProvider } from "@/components/Toast";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Portal do cliente" };
@@ -21,6 +22,7 @@ export default async function PortalLayout({ children }: { children: React.React
   if (!equipa && (error || !Array.isArray(meus) || meus.length === 0)) redirect("/auth/recusar?motivo=nao-autorizado");
 
   return (
+    <ToastProvider>
     <div className="portal">
       <header className="top">
         <Image src="/brand/icon.png" alt="" width={30} height={30} style={{ borderRadius: 8 }} />
@@ -32,5 +34,6 @@ export default async function PortalLayout({ children }: { children: React.React
       </header>
       <main className="scroll">{children}</main>
     </div>
+    </ToastProvider>
   );
 }

@@ -1,5 +1,4 @@
-import { Rail } from "@/components/Rail";
-import { Top } from "@/components/Top";
+import { Shell } from "@/components/Shell";
 import { VerificaCronometro } from "@/components/VerificaCronometro";
 import { EquipaProvider } from "@/components/Equipa";
 import { ToastProvider } from "@/components/Toast";
@@ -9,16 +8,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { user } = await exigirAutorizado();
   return (
     <ToastProvider>
-    <EquipaProvider>
-    <div className="app">
-      <Rail email={user.email ?? ""} />
-      <div className="main">
-        <Top />
-        <div className="scroll">{children}</div>
-      </div>
-    </div>
-    <VerificaCronometro />
-    </EquipaProvider>
+      <EquipaProvider>
+        <Shell email={user.email ?? ""}>{children}</Shell>
+        <VerificaCronometro />
+      </EquipaProvider>
     </ToastProvider>
   );
 }

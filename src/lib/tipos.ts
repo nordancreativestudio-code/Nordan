@@ -15,7 +15,7 @@ export const ESTADOS_CLIENTE = ["Ativo", "Pontual", "Inativo"] as const;
 export type Cliente = {
   id: string; nome: string; setor: string | null; estado: (typeof ESTADOS_CLIENTE)[number];
   contacto: string | null; telefone: string | null; email: string | null; web: string | null;
-  nif: string | null; localidade: string | null; notas: string | null;
+  nif: string | null; localidade: string | null; notas: string | null; avenca?: boolean;
 };
 export type Projeto = {
   id: string; cliente_id: string | null; nome: string; estado: Estado;
@@ -57,3 +57,26 @@ export const tabelaEmFalta = (e: { code?: string; message?: string }) =>
   e.code === "PGRST205" || e.code === "42P01" || /does not exist|schema cache/i.test(e.message ?? "");
 export const dataCurta = (d: string | null) =>
   d ? new Date(d + "T00:00:00").toLocaleDateString("pt-PT", { day: "2-digit", month: "short" }).replace(".", "") : "";
+
+/** "2026-11-12" → "12/11/2026"; timestamps → data na hora de Lisboa */
+export const dataPt = (v?: string | null) => {
+  if (!v) return "";
+  if (v.length === 10) { const [y, m, d] = v.split("-"); return `${d}/${m}/${y}`; }
+  return new Date(v).toLocaleDateString("pt-PT", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Europe/Lisbon" });
+};
+/** só aceita links http(s); evita javascript: e afins em dados editáveis */
+export const linkSeguro = (u?: string | null) => (u && /^https?:\/\//i.test(u.trim()) ? u.trim() : null);
+/** 936 309 455 → https://wa.me/351936309455 (9 dígitos = Portugal; outros números com indicativo) */
+export const linkWhatsApp = (tel?: string | null) => {
+  const d = (tel ?? "").replace(/\D/g, "");
+  if (!d) return null;
+  return `https://wa.me/${d.length === 9 ? "351" + d : d.replace(/^00/, "")}`;
+};
+export const linkEmail = (e?: string | null) => (e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim()) ? `mailto:${e.trim()}` : null);
+/** primeiro dia do mês (hoje + n meses), como "2026-12-01" */
+export const primeiroDoMes = (n: number) => {
+  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+};
+export const mesRotulo = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString("pt-PT", { month: "long", year: "numeric" });
+export const TITULO_FORM: Record<string, string> = { briefing: "Briefing", feedback: "Feedback final", planeamento_mensal: "Planeamento mensal" };

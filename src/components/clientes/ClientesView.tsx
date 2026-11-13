@@ -76,6 +76,7 @@ export function ClientesView() {
     const dados = Object.fromEntries(CAMPOS.map((k) => [k, nul(form[k])]));
     dados.nome = form.nome.trim();
     dados.estado = form.estado || "Ativo";
+    dados.avenca = !!form.avenca;
     const r = form.id
       ? await sb.from("clientes").update(dados).eq("id", form.id)
       : await sb.from("clientes").insert(dados);
@@ -162,6 +163,7 @@ export function ClientesView() {
             <select className="in" value={form.estado ?? "Ativo"} onChange={(e) => set("estado", e.target.value)}>
               {ESTADOS_CLIENTE.map((s) => <option key={s}>{s}</option>)}
             </select></div>
+          <label className="chk full"><input type="checkbox" checked={!!form.avenca} onChange={(e) => setForm((f) => ({ ...f, avenca: e.target.checked }))} />Cliente com avença (tem o formulário de planeamento mensal)</label>
           <div className="fld"><label>Pessoa de contacto</label><input className="in" value={form.contacto ?? ""} onChange={(e) => set("contacto", e.target.value)} /></div>
           <div className="fld"><label>Telefone</label><input className="in" type="tel" value={form.telefone ?? ""} onChange={(e) => set("telefone", e.target.value)} /></div>
           <div className="fld"><label>Email</label><input className="in" type="email" value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} /></div>

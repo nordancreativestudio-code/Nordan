@@ -414,7 +414,7 @@ export function ProjetosView() {
               </div>
             </>)}
           </div>
-          {form.id && <ProjetoPortal key={form.id} projetoId={form.id} />}
+          {form.id && <ProjetoPortal key={form.id} projetoId={form.id} clienteId={form.cliente_id ?? null} />}
         </>)}
       </Gaveta>
     </>

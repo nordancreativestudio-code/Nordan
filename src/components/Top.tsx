@@ -3,18 +3,29 @@
 import { usePathname } from "next/navigation";
 import { VMAP } from "./vistas";
 import { CronometrosAtivos } from "./CronometrosAtivos";
+import { VistaToggle } from "./VistaToggle";
 
-export function Top() {
+export function Top({ previa = false }: { previa?: boolean }) {
   const pathname = usePathname();
   const base = "/" + (pathname.split("/")[1] ?? "");
   const v = VMAP[base] ?? VMAP["/"];
   const podeCriar = base === "/clientes" || base === "/projetos";
+  if (previa)
+    return (
+      <header className="top">
+        <h1>Vista do cliente</h1>
+        <span className="sub">só leitura</span>
+        <div className="spacer" />
+        <VistaToggle />
+      </header>
+    );
   return (
     <header className="top">
       <h1>{v.n}</h1>
       {v.sub && <span className="sub">{v.sub}</span>}
       <div className="spacer" />
       <CronometrosAtivos />
+      <VistaToggle />
       <input className="srch" type="search" placeholder="Procurar…" aria-label="Procurar" disabled />
       <button className="btn sino" title="Novidades" aria-label="Novidades" type="button">
         <svg viewBox="0 0 16 16" aria-hidden="true">

@@ -28,6 +28,7 @@ export const VISTAS: { g: string; v: Vista[] }[] = [
     g: "Definições",
     v: [
       { k: "definicoes", href: "/definicoes", n: "Equipa", ic: "◍", sub: "pessoas e cores" },
+      { k: "contactos", href: "/contactos", n: "Contactos", ic: "☏", sub: "Fala connosco (portal)" },
       { k: "conteudo-portal", href: "/conteudo-portal", n: "Conteúdo do portal", ic: "❖", sub: "o que o cliente lê" },
     ],
   },

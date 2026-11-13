@@ -8,6 +8,8 @@ export type Campo = {
   k: string; label: string;
   tipo?: "texto" | "area" | "select" | "data" | "check" | "url";
   opcoes?: [string, string][];
+  opcoesDe?: (linhas: Linha[]) => [string, string][];   // opções que dependem das outras linhas
+  curto?: boolean;
 };
 export type Linha = { id: string; ordem: number } & Record<string, unknown>;
 
@@ -85,14 +87,14 @@ export function EditorLista({
     if (c.tipo === "select")
       return (
         <select className="in mini-in" key={c.k} title={c.label} aria-label={c.label} value={s} onChange={(e) => muda(l.id, c.k, e.target.value || null)}>
-          {c.opcoes?.map(([val, lab]) => <option key={val} value={val}>{lab}</option>)}
+          {(c.opcoesDe ? c.opcoesDe(linhas) : c.opcoes)?.map(([val, lab]) => <option key={val} value={val}>{lab}</option>)}
         </select>
       );
     if (c.tipo === "data")
       return <label className="vis" key={c.k}>{c.label}<input className="in dt" type="date" value={s} onChange={(e) => muda(l.id, c.k, e.target.value || null)} /></label>;
     if (c.tipo === "area")
       return <textarea className="in larga" key={c.k + s} placeholder={c.label} aria-label={c.label} defaultValue={s} onBlur={(e) => guarda(e.target.value)} />;
-    return <input className={principal ? "tt" : "in larga"} key={c.k + s} type={c.tipo === "url" ? "url" : "text"} placeholder={c.label} aria-label={c.label}
+    return <input className={principal ? "tt" : c.curto ? "in mini-in" : "in larga"} style={c.curto && !principal ? { width: 130 } : undefined} key={c.k + s} type={c.tipo === "url" ? "url" : "text"} placeholder={c.label} aria-label={c.label}
       defaultValue={s} onBlur={(e) => guarda(e.target.value)} />;
   };
 

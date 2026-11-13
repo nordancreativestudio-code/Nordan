@@ -3,13 +3,13 @@
 -- Cria dois clientes de teste, entra "como" o cliente A e tenta chegar aos
 -- dados do cliente B. NADA fica gravado: o teste termina sempre com uma
 -- mensagem em forma de erro (é assim que tudo é desfeito). Lê a mensagem:
---   "TESTE OK: 12/12 ..."      → está seguro
+--   "TESTE OK: 13/13 ..."      → está seguro
 --   "TESTE FALHOU: ..."        → diz-me o que aparece
 -- ═══════════════════════════════════════════════════════════════════════════
 do $$
 declare
   a uuid; b uuid; pa uuid; pa_oculto uuid; pb uuid; ka uuid; kb uuid; ta_vis uuid; ta_int uuid; qa uuid;
-  ok int := 0; falhas text := ''; n int; j jsonb; total int := 12;
+  ok int := 0; falhas text := ''; n int; j jsonb; total int := 13;
 begin
   insert into public.clientes (nome) values ('TESTE cliente A') returning id into a;
   insert into public.clientes (nome) values ('TESTE cliente B') returning id into b;
@@ -66,7 +66,7 @@ begin
   exception when others then ok := ok + 1; end;
   -- 11: não consegue responder ao formulário do projeto de B, nem mexer diretamente num conteúdo
   begin
-    perform public.portal_guardar_resposta(pb, qa, 'intruso');
+    perform public.portal_guardar_formulario(pb, 'briefing', null, jsonb_build_object(qa::text, 'intruso'), false);
     falhas := falhas || ' [11 respondeu ao formulário de B]';
   exception when others then
     update public.conteudos set estado = 'aprovado' where id = ka;
@@ -75,12 +75,15 @@ begin
   end;
   -- 12: o que é dele funciona: aprova, e a mudança fica registada com autor
   perform public.portal_responder_conteudo(ka, 'aprovar', 'Está ótimo');
-  perform public.portal_guardar_resposta(pa, qa, 'A minha resposta');
+  perform public.portal_guardar_formulario(pa, 'briefing', null, jsonb_build_object(qa::text, 'A minha resposta'), true);
+  -- 13 (feito antes de repor os privilégios): não lê respostas de formulários diretamente
+  select count(*) into n from public.formularios_respostas;
+  if n = 0 then ok := ok + 1; else falhas := falhas || ' [13 lê respostas de formulários diretamente]'; end if;
   reset role;
   select count(*) into n from public.comentarios
    where conteudo_id = ka and tipo = 'mudanca_estado' and estado_para = 'aprovado' and autor_tipo = 'cliente';
   if n = 1 and (select estado from public.conteudos where id = ka) = 'aprovado'
-     and (select resposta from public.formularios_respostas where projeto_id = pa and pergunta_id = qa) = 'A minha resposta'
+     and (select r.respostas -> 0 ->> 'resposta' from public.formularios_respostas r where r.projeto_id = pa and r.tipo = 'briefing') = 'A minha resposta'
   then ok := ok + 1; else falhas := falhas || ' [12 a aprovação ou a resposta do próprio cliente não ficou registada]'; end if;
 
   if ok = total then
