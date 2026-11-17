@@ -13,12 +13,15 @@ const PILL: Record<string, string> = { Urgente: "coral", Alta: "amber" };
 
 export default async function Inicio() {
   const sb = await createClient();
-  const [pj, tf] = await Promise.all([
+  const mes = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" }).slice(0, 7);
+  const [pj, tf, fin, cfg] = await Promise.all([
     sb.from("projetos")
       .select("id,nome,estado,prioridade,responsavel,prazo,prazo_estimado,clientes(nome)")
       .neq("estado", "Concluído")
       .order("ordem"),
     sb.from("tarefas").select("projeto_id,concluida"),
+    sb.from("financas").select("data,tipo,valor,pago"),
+    sb.from("config_financas").select("saldo,saldo_data").eq("id", 1).maybeSingle(),
   ]);
   if (pj.error && !tabelaEmFalta(pj.error)) throw new Error(pj.error.message);
 
@@ -34,6 +37,16 @@ export default async function Inicio() {
     x.t += 1; if (t.concluida) x.c += 1;
     prog.set(t.projeto_id, x);
   }
+
+  // finanças (só mostra se a tabela existir e responder)
+  const temFin = !fin.error && !cfg.error;
+  let entMes = 0, saiMes = 0, aReceber = 0;
+  for (const m of fin.data ?? []) {
+    const v = Number(m.valor) || 0;
+    if (String(m.data).slice(0, 7) === mes) { if (m.tipo === "Entrada") entMes += v; else saiMes += v; }
+    if (!m.pago && m.tipo === "Entrada") aReceber += v;
+  }
+  const euro = (n: number) => n.toLocaleString("pt-PT", { style: "currency", currency: "EUR" });
 
   const bloco = (titulo: string, lista: Linha[], vazio: string) => (
     <div className="card">
@@ -81,6 +94,22 @@ export default async function Inicio() {
         <div className="kpi"><div className="v num">{porEstado("Para fazer").length}</div><div className="n">Para fazer</div></div>
         <div className="kpi"><div className="v num">{porEstado("Standby").length}</div><div className="n">Em standby</div></div>
       </div>
+      {temFin && (
+        <div className="grid kpis">
+          <Link href="/financas" className="kpi hi clic" style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="v num">{euro(Number(cfg.data?.saldo) || 0)}</div><div className="n">Conta bancária</div>
+          </Link>
+          <Link href="/financas" className="kpi clic" style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="v num">{euro(entMes)}</div><div className="n">Entradas do mês</div>
+          </Link>
+          <Link href="/financas" className="kpi clic" style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="v num">{euro(saiMes)}</div><div className="n">Saídas do mês</div>
+          </Link>
+          <Link href="/financas" className="kpi clic" style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="v num">{euro(aReceber)}</div><div className="n">A receber</div>
+          </Link>
+        </div>
+      )}
       <div className="grid two">
         {bloco("Em trabalho agora", emTrabalho, "Nenhum projeto em andamento. Move um cartão para «Em andamento» em Projetos.")}
         {bloco("Em aprovação do cliente", emAprovacao, "Nada à espera de aprovação.")}
