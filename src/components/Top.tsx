@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { VMAP } from "./vistas";
 import { CronometrosAtivos } from "./CronometrosAtivos";
 import { VistaToggle } from "./VistaToggle";
+import { DataRelogio } from "./DataRelogio";
 
 export function Top({ previa = false }: { previa?: boolean }) {
   const pathname = usePathname();
@@ -22,7 +23,7 @@ export function Top({ previa = false }: { previa?: boolean }) {
   return (
     <header className="top">
       <h1>{v.n}</h1>
-      {v.sub && <span className="sub">{v.sub}</span>}
+      {base === "/" ? <DataRelogio /> : v.sub && <span className="sub">{v.sub}</span>}
       <div className="spacer" />
       <CronometrosAtivos />
       <VistaToggle />
