@@ -114,8 +114,62 @@ function Respostas({ projetoId, clienteId }: { projetoId: string; clienteId: str
   );
 }
 
+/** Fluxo do projeto (vista interna, simples): quadrados por fase; clicar marca feito / por fazer. */
+function FluxoProjeto({ projetoId, versao, onMudou }: { projetoId: string; versao: number; onMudou: () => void }) {
+  const [sb] = useState(() => createClient());
+  const toast = useToast();
+  const [fases, setFases] = useState<Record<string, string | null>>({});
+  const [passos, setPassos] = useState<{ id: string; titulo: string; modelo_id: string | null; data_real: string | null }[]>([]);
+  useEffect(() => {
+    Promise.all([
+      sb.from("workflow_modelo").select("id,fase"),
+      sb.from("projeto_passos").select("id,titulo,modelo_id,data_real").eq("projeto_id", projetoId).order("ordem"),
+    ]).then(([m, p]) => {
+      setFases(Object.fromEntries((m.data ?? []).map((x) => [x.id as string, x.fase as string | null])));
+      setPassos(p.data ?? []);
+    });
+  }, [sb, projetoId, versao]);
+  const seguinte = passos.find((p) => !p.data_real);
+  async function alterna(id: string, feito: boolean) {
+    const hoje = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" });
+    const r = await sb.from("projeto_passos").update({ data_real: feito ? null : hoje }).eq("id", id);
+    if (r.error) return toast("Erro: " + r.error.message);
+    onMudou();
+  }
+  if (passos.length === 0) return <div className="dica">Este projeto ainda não tem passos. Aplica o workflow em “Timings por fase”.</div>;
+  const nomes = [...new Set(passos.map((p) => (p.modelo_id && fases[p.modelo_id]) || "Passos"))];
+  return (
+    <>
+      <div className="dica" style={{ margin: "0 0 10px" }}>
+        {seguinte ? <>Estamos em: <b>{seguinte.titulo}</b>. Clica num quadrado para o marcar como feito.</> : "Todos os passos concluídos."}
+      </div>
+      {nomes.map((fase) => (
+        <div key={fase} style={{ marginBottom: 12 }}>
+          <div className="cap">{fase}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))", gap: 8 }}>
+            {passos.filter((p) => ((p.modelo_id && fases[p.modelo_id]) || "Passos") === fase).map((p) => {
+              const feito = !!p.data_real, atual = seguinte?.id === p.id;
+              return (
+                <button key={p.id} type="button" onClick={() => alterna(p.id, feito)} title={feito ? "Feito — clica para desfazer" : "Marcar como feito"}
+                  style={{
+                    textAlign: "left", padding: "10px 12px", borderRadius: 10, cursor: "pointer", minHeight: 58,
+                    background: feito ? "var(--lime-soft)" : "var(--panel)", color: feito ? "var(--lime)" : "var(--mist)",
+                    border: "1px solid " + (atual ? "var(--lime)" : feito ? "var(--lime-line)" : "var(--line)"),
+                  }}>
+                  <div style={{ fontSize: 12.5, lineHeight: 1.25 }}>{feito ? "✓ " : ""}{p.titulo}</div>
+                  {atual && <div className="sub" style={{ marginTop: 4, color: "var(--lime)" }}>aqui</div>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
 /** Blocos do portal dentro da gaveta de um projeto: timings, conteúdos para aprovação e formulários. */
-export function ProjetoPortal({ projetoId, clienteId }: { projetoId: string; clienteId: string | null }) {
+export function ProjetoPortal({ projetoId, clienteId, parte }: { projetoId: string; clienteId: string | null; parte: "workflow" | "resto" }) {
   const [sb] = useState(() => createClient());
   const toast = useToast();
   const [versao, setVersao] = useState(0);
@@ -128,6 +182,8 @@ export function ProjetoPortal({ projetoId, clienteId }: { projetoId: string; cli
 
   return (
     <>
+      {parte === "workflow" && (<>
+      <div className="fld"><FluxoProjeto projetoId={projetoId} versao={versao} onMudou={() => setVersao((v) => v + 1)} /></div>
       <details className="grp">
         <summary>Timings por fase</summary>
         <div className="conteudo">
@@ -140,6 +196,8 @@ export function ProjetoPortal({ projetoId, clienteId }: { projetoId: string; cli
           />
         </div>
       </details>
+      </>)}
+      {parte === "resto" && (<>
       <details className="grp">
         <summary>Conteúdos para aprovação</summary>
         <div className="conteudo">
@@ -154,6 +212,7 @@ export function ProjetoPortal({ projetoId, clienteId }: { projetoId: string; cli
         <summary>Formulários do cliente</summary>
         <div className="conteudo"><Respostas projetoId={projetoId} clienteId={clienteId} /></div>
       </details>
+      </>)}
     </>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { SelectOpcoes } from "@/components/SelectOpcoes";
 import { Gaveta } from "@/components/Gaveta";
 import { useToast } from "@/components/Toast";
 import { pc, useEquipa } from "@/components/Equipa";
@@ -32,6 +33,7 @@ export function ProjetosView() {
   const [clientes, setClientes] = useState<CliMin[]>([]);
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [erro, setErro] = useState<string | null>(null);
+  const [abaG, setAbaG] = useState<"projeto" | "workflow">("projeto");
   const [form, setForm] = useState<Form | null>(null);
   const [aGuardar, setAGuardar] = useState(false);
   const [resp, setResp] = useState<string>("Todos");
@@ -256,7 +258,7 @@ export function ProjetosView() {
                       onDragEnd={() => { setArrasta(null); setSobre(null); }}
                       onDragOver={(e) => { if (arrasta && arrasta !== p.id) { e.preventDefault(); e.stopPropagation(); setSobre(estado); } }}
                       onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setSobre(null); if (arrasta && arrasta !== p.id) mover(arrasta, estado, p.id); setArrasta(null); }}
-                      onClick={() => setForm(p)}
+                      onClick={() => { setAbaG("projeto"); setForm(p); }}
                     >
                       <div className="t">{p.nome}</div>
                       {p.cliente_id && <div className="cli">{nomeCli[p.cliente_id]}</div>}
@@ -295,6 +297,17 @@ export function ProjetosView() {
         </>}
       >
         {form && (<>
+          {form.id && (
+            <div className="seg" role="tablist" style={{ marginBottom: 12 }}>
+              {(["projeto", "workflow"] as const).map((a) => (
+                <button key={a} type="button" role="tab" aria-selected={abaG === a} className={"sb" + (abaG === a ? " on" : "")} onClick={() => setAbaG(a)}>
+                  {a === "projeto" ? "Projeto" : "Workflow"}
+                </button>
+              ))}
+            </div>
+          )}
+          {form.id && abaG === "workflow" && <ProjetoPortal key={"w" + form.id} parte="workflow" projetoId={form.id} clienteId={form.cliente_id ?? null} />}
+          <div style={{ display: form.id && abaG === "workflow" ? "none" : "contents" }}>
           <div className="fld"><label>Nome</label><input className="in" value={form.nome ?? ""} onChange={(e) => set("nome", e.target.value)} autoFocus /></div>
           <div className="fld"><label>Cliente</label>
             <select className="in" value={form.cliente_id ?? ""} onChange={(e) => set("cliente_id", e.target.value)}>
@@ -317,16 +330,10 @@ export function ProjetosView() {
                 {RESPONSAVEIS.map((s) => <option key={s}>{s}</option>)}
               </select></div>
             <div className="fld"><label>Marca</label>
-              <select className="in" value={form.marca ?? ""} onChange={(e) => set("marca", e.target.value)}>
-                <option value="">—</option>
-                {MARCAS.map((s) => <option key={s}>{s}</option>)}
-              </select></div>
+              <SelectOpcoes lista="marca" fallback={MARCAS} valor={form.marca ?? ""} onChange={(v) => set("marca", v)} /></div>
           </div>
           <div className="fld"><label>Tipo de trabalho</label>
-            <select className="in" value={form.tipo ?? ""} onChange={(e) => set("tipo", e.target.value)}>
-              <option value="">—</option>
-              {TIPOS.map((s) => <option key={s}>{s}</option>)}
-            </select></div>
+            <SelectOpcoes lista="tipo_trabalho" fallback={TIPOS} valor={form.tipo ?? ""} onChange={(v) => set("tipo", v)} /></div>
           <div className="row2">
             <div className="fld"><label>Início</label><input className="in" type="date" value={form.inicio ?? ""} onChange={(e) => set("inicio", e.target.value)} /></div>
             <div className="fld"><label>Prazo / entrega</label><input className="in" type="date" value={form.prazo ?? ""} onChange={(e) => set("prazo", e.target.value)} /></div>
@@ -414,7 +421,8 @@ export function ProjetosView() {
               </div>
             </>)}
           </div>
-          {form.id && <ProjetoPortal key={form.id} projetoId={form.id} clienteId={form.cliente_id ?? null} />}
+          {form.id && <ProjetoPortal key={form.id} parte="resto" projetoId={form.id} clienteId={form.cliente_id ?? null} />}
+          </div>
         </>)}
       </Gaveta>
     </>

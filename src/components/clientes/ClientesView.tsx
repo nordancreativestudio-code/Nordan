@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { SelectOpcoes } from "@/components/SelectOpcoes";
 import { Gaveta } from "@/components/Gaveta";
 import { useToast } from "@/components/Toast";
 import {
@@ -154,11 +155,7 @@ export function ClientesView() {
         {form && (<>
           <div className="fld full"><label>Nome do cliente</label><input className="in" value={form.nome ?? ""} onChange={(e) => set("nome", e.target.value)} autoFocus /></div>
           <div className="fld"><label>Setor</label>
-            <select className="in" value={form.setor ?? ""} onChange={(e) => set("setor", e.target.value)}>
-              <option value="">—</option>
-              {form.setor && !SETORES.includes(form.setor) && <option>{form.setor}</option>}
-              {SETORES.map((s) => <option key={s}>{s}</option>)}
-            </select></div>
+            <SelectOpcoes lista="setor" fallback={SETORES} valor={form.setor ?? ""} onChange={(v) => set("setor", v)} /></div>
           <div className="fld"><label>Estado</label>
             <select className="in" value={form.estado ?? "Ativo"} onChange={(e) => set("estado", e.target.value)}>
               {ESTADOS_CLIENTE.map((s) => <option key={s}>{s}</option>)}
