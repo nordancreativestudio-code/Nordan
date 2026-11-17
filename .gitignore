@@ -42,3 +42,10 @@ next-env.d.ts
 
 # manter o exemplo
 !.env.example
+
+# dados reais da migração (nunca para o Git)
+/supabase/dados-locais/
+
+# credenciais e cópias de segurança
+credenciais-*.txt
+nordan-backup-*.json
