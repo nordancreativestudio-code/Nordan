@@ -14,7 +14,7 @@ const PILL: Record<string, string> = { Urgente: "coral", Alta: "amber" };
 export default async function Inicio() {
   const sb = await createClient();
   const mes = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" }).slice(0, 7);
-  const [pj, tf, fin, cfg] = await Promise.all([
+  const [pj, tf, fin, cfg, ld] = await Promise.all([
     sb.from("projetos")
       .select("id,nome,estado,prioridade,responsavel,prazo,prazo_estimado,clientes(nome)")
       .neq("estado", "Concluído")
@@ -22,6 +22,7 @@ export default async function Inicio() {
     sb.from("tarefas").select("projeto_id,concluida"),
     sb.from("financas").select("data,tipo,valor,pago"),
     sb.from("config_financas").select("saldo,saldo_data").eq("id", 1).maybeSingle(),
+    sb.from("leads").select("estado,proximo_contacto").limit(5000),
   ]);
   if (pj.error && !tabelaEmFalta(pj.error)) throw new Error(pj.error.message);
 
@@ -46,6 +47,11 @@ export default async function Inicio() {
     if (String(m.data).slice(0, 7) === mes) { if (m.tipo === "Entrada") entMes += v; else saiMes += v; }
     if (!m.pago && m.tipo === "Entrada") aReceber += v;
   }
+  const temLeads = !ld.error;
+  const hojeIso = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" });
+  const leadsAtivas = (ld.data ?? []).filter((l) => l.estado !== "Perdido");
+  const leadsPorContactar = leadsAtivas.filter((l) => l.proximo_contacto && l.proximo_contacto <= hojeIso).length;
+  const leadsConversa = leadsAtivas.filter((l) => l.estado === "Conversa").length;
   const euro = (n: number) => n.toLocaleString("pt-PT", { style: "currency", currency: "EUR" });
 
   const bloco = (titulo: string, lista: Linha[], vazio: string) => (
@@ -107,6 +113,19 @@ export default async function Inicio() {
           </Link>
           <Link href="/financas" className="kpi clic" style={{ textDecoration: "none", color: "inherit" }}>
             <div className="v num">{euro(aReceber)}</div><div className="n">A receber</div>
+          </Link>
+        </div>
+      )}
+      {temLeads && (
+        <div className="grid kpis">
+          <Link href="/leads" className="kpi clic" style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="v num">{leadsAtivas.length}</div><div className="n">Leads ativas</div>
+          </Link>
+          <Link href="/leads" className="kpi clic" style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="v num" style={{ color: leadsPorContactar ? "var(--coral)" : undefined }}>{leadsPorContactar}</div><div className="n">Contactos de leads por fazer</div>
+          </Link>
+          <Link href="/leads" className="kpi clic" style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="v num">{leadsConversa}</div><div className="n">Leads em conversa</div>
           </Link>
         </div>
       )}
