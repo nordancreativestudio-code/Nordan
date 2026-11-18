@@ -14,6 +14,7 @@ type Passo = { id: string; titulo: string; frase: string | null; tipo: string; m
 type Detalhe = {
   projeto: { id: string; nome: string; tipo: string | null; prazo_estimado: string | null; link_entrega: string | null };
   passos: Passo[]; conteudos: Conteudo[];
+  links?: { id: string; titulo: string; url: string; tipo: string }[];
   tarefas: { id: string; titulo: string; concluida: boolean; prazo: string | null; segundos: number | null }[];
 };
 type Pagina = { id: string; pagina: string; titulo: string; texto: string | null; blocos: { tipo: string; titulo: string; descricao: string | null; url_drive: string | null }[] };
@@ -22,6 +23,32 @@ type Paginas = { workflow: PassoModelo[]; paginas: Pagina[]; contactos: Contacto
 
 const ABAS: [string, string][] = [["projetos", "Projetos"], ["workflow", "Workflow"], ["formulario", "Formulário"], ["ferramentas", "Ferramentas e Comunicação"]];
 const hoje = () => new Date().toISOString().slice(0, 10);
+
+const ORDEM_LINK = ["Planeamento", "Entrega", "Pasta", "Outro"];
+/** Links do projeto (Drive) agrupados por tipo. Sem links válidos, não mostra a secção. */
+function LinksProjeto({ links }: { links: { id: string; titulo: string; url: string; tipo: string }[] }) {
+  const validos = links.map((l) => ({ ...l, href: linkSeguro(l.url) })).filter((l) => l.href);
+  if (validos.length === 0) return null;
+  const tipos = [...new Set(validos.map((l) => l.tipo || "Outro"))]
+    .sort((a, b) => (ORDEM_LINK.indexOf(a) + 1 || 99) - (ORDEM_LINK.indexOf(b) + 1 || 99));
+  return (
+    <div className="card"><h3>Links</h3>
+      {tipos.map((t) => (
+        <div key={t} style={{ marginTop: 8 }}>
+          <div className="cap">{t}</div>
+          <div className="lista">
+            {validos.filter((l) => (l.tipo || "Outro") === t).map((l) => (
+              <div className="li" key={l.id}>
+                <span className="nm">{l.titulo}</span>
+                <a className="btn sm" href={l.href!} target="_blank" rel="noopener noreferrer">Abrir ↗</a>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /** Linha do tempo de um projeto: passo atual destacado, "a tua parte" nos passos do cliente, aviso discreto se passou da data. */
 function Timeline({ passos }: { passos: Passo[] }) {
@@ -84,6 +111,7 @@ function ProjetoDetalhe({ id, previa, onVoltar }: { id: string; previa: boolean;
         {d.conteudos.length === 0 ? <div className="dica">Ainda não há conteúdos para ver.</div>
           : <div className="lista">{d.conteudos.map((c) => <ConteudoPortal key={c.id} c={c} previa={previa} onMudou={ler} />)}</div>}
       </div>
+      <LinksProjeto links={d.links ?? []} />
       {d.tarefas.length > 0 && (
         <div className="card"><h3>Tarefas</h3>
           <div className="lista">
