@@ -7,7 +7,7 @@ export const VISTAS: { g: string; v: Vista[] }[] = [
       { k: "inicio", href: "/", n: "Início", ic: "◐", sub: "o dia de hoje" },
       { k: "projetos", href: "/projetos", n: "Projetos", ic: "▣", sub: "kanban e tabela" },
       { k: "calendario", href: "/calendario", n: "Calendário", ic: "▦", sub: "editorial e agenda" },
-      { k: "design", href: "/design", n: "Pedidos de design", ic: "✧" },
+      { k: "briefings", href: "/briefings", n: "Briefings", ic: "✧", sub: "o que os clientes preencheram" },
     ],
   },
   {
