@@ -48,3 +48,10 @@ export const CAMPOS_CONTEUDO: Campo[] = [
   { k: "responsavel", label: "Responsável", tipo: "select", opcoes: [["", "Responsável"], ...RESPONSAVEIS.map((r) => [r, r] as [string, string])] },
   { k: "link_drive", label: "Link do Google Drive", tipo: "url" },
 ];
+
+export const CAMPOS_LINK: Campo[] = [
+  { k: "titulo", label: "Título (ex.: Pasta de entrega)" },
+  { k: "url", label: "Link (https://…)", tipo: "url", naoNulo: true },
+  { k: "tipo", label: "Tipo", tipo: "opcoes", lista: "link_tipo" },
+  { k: "visivel_ao_cliente", label: "Visível ao cliente", tipo: "check" },
+];

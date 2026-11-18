@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/Toast";
 import { TITULO_FORM, dataPt, mesRotulo, primeiroDoMes } from "@/lib/tipos";
 import { EditorLista } from "./EditorLista";
-import { CAMPOS_CONTEUDO, CAMPOS_PASSO, ESTADOS_CONTEUDO } from "./campos";
+import { CAMPOS_CONTEUDO, CAMPOS_LINK, CAMPOS_PASSO, ESTADOS_CONTEUDO } from "./campos";
 
 type Coment = { id: string; tipo: string; texto: string | null; estado_de: string | null; estado_para: string | null; autor_nome: string | null; autor_tipo: string | null; criado_em: string };
 type Resp = {
@@ -205,6 +205,16 @@ export function ProjetoPortal({ projetoId, clienteId, parte }: { projetoId: stri
             tabela="conteudos" filtro={{ projeto_id: projetoId }} campos={CAMPOS_CONTEUDO} placeholder="Novo conteúdo (título)…"
             classeLinha={(l) => "est-" + String(l.estado)}
             filho={(l) => <Conversa key={String(l.estado)} conteudoId={l.id} />}
+          />
+        </div>
+      </details>
+      <details className="grp">
+        <summary>Links (Drive)</summary>
+        <div className="conteudo">
+          <div className="dica">Pastas e documentos do Google Drive, por link. Os marcados como visíveis aparecem ao cliente no projeto.</div>
+          <EditorLista
+            tabela="projeto_links" filtro={{ projeto_id: projetoId }} campos={CAMPOS_LINK} placeholder="Novo link (título)…"
+            vazio={<div className="dica">Ainda não há links neste projeto.</div>}
           />
         </div>
       </details>
