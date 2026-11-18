@@ -14,7 +14,7 @@ const PILL: Record<string, string> = { Urgente: "coral", Alta: "amber" };
 export default async function Inicio() {
   const sb = await createClient();
   const mes = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" }).slice(0, 7);
-  const [pj, tf, fin, cfg, ld] = await Promise.all([
+  const [pj, tf, fin, cfg, ld, br] = await Promise.all([
     sb.from("projetos")
       .select("id,nome,estado,prioridade,responsavel,prazo,prazo_estimado,clientes(nome)")
       .neq("estado", "Concluído")
@@ -23,7 +23,9 @@ export default async function Inicio() {
     sb.from("financas").select("data,tipo,valor,pago"),
     sb.from("config_financas").select("saldo,saldo_data").eq("id", 1).maybeSingle(),
     sb.from("leads").select("estado,proximo_contacto").limit(5000),
+    sb.from("formularios_respostas").select("id", { count: "exact", head: true }).eq("estado", "enviado").is("lido_em", null),
   ]);
+  const briefingsPorLer = br.error ? 0 : br.count ?? 0;
   if (pj.error && !tabelaEmFalta(pj.error)) throw new Error(pj.error.message);
 
   const projetos = (pj.data ?? []) as unknown as Linha[];
@@ -92,6 +94,13 @@ export default async function Inicio() {
 
   return (
     <div className="grid" style={{ gap: 14 }}>
+      {briefingsPorLer > 0 && (
+        <Link href="/briefings" className="card" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "inherit", borderColor: "var(--lime-line)" }}>
+          <span className="pill lime">{briefingsPorLer}</span>
+          <b style={{ fontWeight: 500 }}>{briefingsPorLer === 1 ? "1 briefing por ler" : `${briefingsPorLer} briefings por ler`}</b>
+          <span className="faint" style={{ marginLeft: "auto", fontSize: 12 }}>Abrir →</span>
+        </Link>
+      )}
       <div className="grid kpis">
         <Link href="/projetos" className="kpi hi clic" style={{ textDecoration: "none", color: "inherit" }}>
           <div className="v num">{emTrabalho.length}</div><div className="n">Projetos em trabalho</div>
