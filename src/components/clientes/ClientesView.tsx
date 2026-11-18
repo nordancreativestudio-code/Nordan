@@ -35,9 +35,16 @@ export function ClientesView() {
     if (!form?.id || !/^\S+@\S+\.\S+$/.test(email)) return toast("Escreve um email válido");
     const r = await sb.from("clientes_utilizadores").insert({ cliente_id: form.id, email });
     if (r.error) return toast(r.error.code === "23505" ? "Esse email já tem acesso" : "Erro: " + r.error.message);
-    toast("Acesso criado. O cliente entra pelo ecrã de login com esse email.");
+    const base = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    const e = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: `${base}/auth/callback` } });
+    toast(e.error ? "Acesso criado, mas o email não seguiu: " + e.error.message : "Acesso criado e link enviado para " + email);
     setNovoEmail("");
     lerConvites(form.id);
+  }
+  async function reenviar(email: string) {
+    const base = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    const e = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: `${base}/auth/callback` } });
+    toast(e.error ? "O email não seguiu: " + e.error.message : "Link enviado para " + email);
   }
   async function retirar(id: string, email: string) {
     if (!form?.id || !confirm(`Retirar o acesso de ${email} ao portal?`)) return;
@@ -184,6 +191,7 @@ export function ClientesView() {
                     <div className="li" key={c.id}>
                       <span className="nm">{c.email}</span>
                       <span className={"pill" + (c.utilizador_id ? " lime" : "")}>{c.utilizador_id ? "já entrou" : "ainda não entrou"}</span>
+                      <button className="btn sm" type="button" onClick={() => reenviar(c.email)}>Reenviar link</button>
                       <button className="btn sm dgr" type="button" onClick={() => retirar(c.id, c.email)}>Retirar</button>
                     </div>
                   ))}
@@ -193,7 +201,7 @@ export function ClientesView() {
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); convidar(); } }} />
                   <button className="btn" type="button" onClick={convidar}>Convidar para o portal</button>
                 </div>
-                <div className="dica">O convite não envia email. O cliente abre o endereço do painel, escreve este email e recebe o link de acesso. Só vê projetos marcados como “Visível ao cliente”.</div>
+                <div className="dica">Ao convidar, o cliente recebe logo no email o link de acesso ao portal. Só vê projetos marcados como “Visível ao cliente”.</div>
               </>)}
             </div>
             <div className="fld full"><label>Projetos ({doCliente.length})</label>
