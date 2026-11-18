@@ -168,6 +168,21 @@ function FluxoProjeto({ projetoId, versao, onMudou }: { projetoId: string; versa
   );
 }
 
+/** Secção recolhível da gaveta (sem <details>, para não colapsar dentro da coluna flex). */
+function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  const [aberta, setAberta] = useState(false);
+  return (
+    <div className="card" style={{ marginTop: 14, padding: 0, flex: "none" }}>
+      <button type="button" aria-expanded={aberta} onClick={() => setAberta((a) => !a)}
+        style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "11px 14px", background: "none", border: 0, cursor: "pointer",
+          fontSize: 10.5, letterSpacing: ".13em", textTransform: "uppercase", color: "var(--moss)", fontWeight: 500, textAlign: "left" }}>
+        <span style={{ display: "inline-block", transform: aberta ? "rotate(90deg)" : "none", transition: "transform .15s" }}>›</span>{titulo}
+      </button>
+      {aberta && <div style={{ padding: "2px 12px 12px" }}>{children}</div>}
+    </div>
+  );
+}
+
 /** Blocos do portal dentro da gaveta de um projeto: timings, conteúdos para aprovação e formulários. */
 export function ProjetoPortal({ projetoId, clienteId, parte }: { projetoId: string; clienteId: string | null; parte: "workflow" | "resto" }) {
   const [sb] = useState(() => createClient());
@@ -184,8 +199,7 @@ export function ProjetoPortal({ projetoId, clienteId, parte }: { projetoId: stri
     <>
       {parte === "workflow" && (<>
       <div className="fld"><FluxoProjeto projetoId={projetoId} versao={versao} onMudou={() => setVersao((v) => v + 1)} /></div>
-      <details className="grp">
-        <summary>Timings por fase</summary>
+      <Secao titulo="Timings por fase">
         <div className="conteudo">
           <div className="dica">O passo atual é o primeiro sem data em “Feito em”. O cliente vê esta linha do tempo.</div>
           <EditorLista
@@ -195,11 +209,10 @@ export function ProjetoPortal({ projetoId, clienteId, parte }: { projetoId: stri
               <button className="btn" type="button" onClick={aplicar}>Aplicar o workflow</button></div>}
           />
         </div>
-      </details>
+      </Secao>
       </>)}
       {parte === "resto" && (<>
-      <details className="grp">
-        <summary>Conteúdos para aprovação</summary>
+      <Secao titulo="Conteúdos para aprovação">
         <div className="conteudo">
           <EditorLista
             tabela="conteudos" filtro={{ projeto_id: projetoId }} campos={CAMPOS_CONTEUDO} placeholder="Novo conteúdo (título)…"
@@ -207,9 +220,8 @@ export function ProjetoPortal({ projetoId, clienteId, parte }: { projetoId: stri
             filho={(l) => <Conversa key={String(l.estado)} conteudoId={l.id} />}
           />
         </div>
-      </details>
-      <details className="grp">
-        <summary>Links (Drive)</summary>
+      </Secao>
+      <Secao titulo="Links (Drive)">
         <div className="conteudo">
           <div className="dica">Pastas e documentos do Google Drive, por link. Os marcados como visíveis aparecem ao cliente no projeto.</div>
           <EditorLista
@@ -217,11 +229,10 @@ export function ProjetoPortal({ projetoId, clienteId, parte }: { projetoId: stri
             vazio={<div className="dica">Ainda não há links neste projeto.</div>}
           />
         </div>
-      </details>
-      <details className="grp">
-        <summary>Formulários do cliente</summary>
+      </Secao>
+      <Secao titulo="Formulários do cliente">
         <div className="conteudo"><Respostas projetoId={projetoId} clienteId={clienteId} /></div>
-      </details>
+      </Secao>
       </>)}
     </>
   );
