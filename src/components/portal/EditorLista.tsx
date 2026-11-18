@@ -3,10 +3,14 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/Toast";
+import { SelectOpcoes } from "@/components/SelectOpcoes";
+import { linkSeguro } from "@/lib/tipos";
 
 export type Campo = {
   k: string; label: string;
-  tipo?: "texto" | "area" | "select" | "data" | "check" | "url";
+  tipo?: "texto" | "area" | "select" | "data" | "check" | "url" | "opcoes";
+  lista?: string;          // tipo "opcoes": lista da tabela opcoes (SelectOpcoes)
+  naoNulo?: boolean;       // coluna not null: limpar o campo grava "" em vez de null
   opcoes?: [string, string][];
   opcoesDe?: (linhas: Linha[]) => [string, string][];   // opções que dependem das outras linhas
   curto?: boolean;
@@ -82,6 +86,8 @@ export function EditorLista({
     const v = l[c.k];
     const s = typeof v === "string" ? v : "";
     const guarda = (novoV: string) => { const n = novoV.trim() || null; if (n !== (s || null) && (n || !principal)) muda(l.id, c.k, n); };
+    if (c.tipo === "opcoes" && c.lista)
+      return <div key={c.k} style={{ minWidth: 150 }}><SelectOpcoes lista={c.lista} valor={s} vazio={null} onChange={(val) => muda(l.id, c.k, val)} /></div>;
     if (c.tipo === "check")
       return <label className="vis" key={c.k}><input type="checkbox" checked={!!v} onChange={(e) => muda(l.id, c.k, e.target.checked)} />{c.label}</label>;
     if (c.tipo === "select")
@@ -95,7 +101,14 @@ export function EditorLista({
     if (c.tipo === "area")
       return <textarea className="in larga" key={c.k + s} placeholder={c.label} aria-label={c.label} defaultValue={s} onBlur={(e) => guarda(e.target.value)} />;
     return <input className={principal ? "tt" : c.curto ? "in mini-in" : "in larga"} style={c.curto && !principal ? { width: 130 } : undefined} key={c.k + s} type={c.tipo === "url" ? "url" : "text"} placeholder={c.label} aria-label={c.label}
-      defaultValue={s} onBlur={(e) => guarda(e.target.value)} />;
+      defaultValue={s} onBlur={(e) => {
+        if (c.tipo === "url") {
+          const t = e.target.value.trim();
+          if (t && !linkSeguro(t)) { toast("O link tem de começar por http:// ou https://"); e.target.value = s; return; }
+          if (c.naoNulo) { if (t !== s) muda(l.id, c.k, t); return; }
+        }
+        guarda(e.target.value);
+      }} />;
   };
 
   return (
