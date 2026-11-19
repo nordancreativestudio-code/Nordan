@@ -1,5 +1,5 @@
 /** Tudo o que tem data no calendário. Datas em "AAAA-MM-DD" (dia na hora de Lisboa). */
-export type TipoItem = "sessao" | "projeto" | "tarefa" | "contacto" | "reuniao" | "financas";
+export type TipoItem = "sessao" | "projeto" | "tarefa" | "contacto" | "reuniao" | "financas" | "google";
 
 export const TIPOS_ITEM: { k: TipoItem; rotulo: string; porDefeito: boolean }[] = [
   { k: "sessao", rotulo: "Sessões com clientes", porDefeito: true },
@@ -8,6 +8,7 @@ export const TIPOS_ITEM: { k: TipoItem; rotulo: string; porDefeito: boolean }[] 
   { k: "contacto", rotulo: "Contactos de leads", porDefeito: true },
   { k: "reuniao", rotulo: "Reuniões de leads", porDefeito: true },
   { k: "financas", rotulo: "Finanças por pagar/receber", porDefeito: false },
+  { k: "google", rotulo: "Google Calendar", porDefeito: true },
 ];
 export const ROTULO_TIPO: Record<TipoItem, string> = Object.fromEntries(TIPOS_ITEM.map((t) => [t.k, t.rotulo])) as Record<TipoItem, string>;
 const ORDEM_TIPO = TIPOS_ITEM.map((t) => t.k);
@@ -19,6 +20,8 @@ export type Item = {
   atrasado: boolean;
   /** rota para onde ir ao clicar (o item "sessao" abre o editor no próprio calendário) */
   destino: string | null; sessaoId?: string;
+  /** link externo (evento no Google Calendar), abre noutro separador */
+  externo?: string | null;
 };
 
 export const ordenar = (a: Item, b: Item) =>

@@ -16,7 +16,7 @@
   --lime:#E7FF25; --lime-soft:rgba(160,255,80,.15); --lime-line:rgba(231,255,37,.36);
   --mist:#EAF7F0; --moss:#A0C6B6; --faint:#76998A;
   --line:rgba(190,255,225,.16); --line-soft:rgba(190,255,225,.08);
-  --amber:#FFC93C; --coral:#FF6F55; --sky:#55D3FF;
+  --amber:#FFC93C; --coral:#FF6F55; --sky:#55D3FF; --violet:#B48CFF;
   --r:16px; --rs:10px;
   --ink:#00281F;
   --viva:linear-gradient(135deg,#F6FF5C 0%,#DDFF22 34%,#7DF08B 72%,#22E5A0 100%);
@@ -513,6 +513,7 @@ details.grp>.conteudo{padding:2px 12px 12px;display:flex;flex-direction:column;g
 .t-contacto{--c:var(--amber);--pc:var(--amber)}
 .t-reuniao{--c:var(--mist);--pc:var(--mist)}
 .t-financas{--c:var(--coral);--pc:var(--coral)}
+.t-google{--c:var(--violet);--pc:var(--violet)}
 .cal-barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .cal-barra .tit{font-size:20px;font-weight:700;min-width:170px}
 .cal-filtros{margin-bottom:12px}

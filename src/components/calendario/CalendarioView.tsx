@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Gaveta } from "@/components/Gaveta";
 import { EditorSessao } from "@/components/sessoes/EditorSessao";
 import { SessoesPainel } from "@/components/sessoes/SessoesPainel";
-import { tabelaEmFalta } from "@/lib/tipos";
+import { linkSeguro, tabelaEmFalta } from "@/lib/tipos";
 import { horaPt, type Sessao } from "@/lib/sessoes";
 import {
   DIAS_SEMANA, TIPOS_ITEM, celulasMes, dataLisboa, hojeLisboa, ordenar, rotuloDia, rotuloMesAno, somaDias,
@@ -18,6 +18,7 @@ type Proj = Opt & { cliente_id: string | null; prazo: string | null; estado: str
 type Tar = { id: string; titulo: string; prazo: string; projeto_id: string };
 type LeadC = { id: string; nome: string; proximo_contacto: string | null; proximo_acao: string | null; reuniao: string | null };
 type Mov = { id: string; data: string; movimento: string; tipo: "Entrada" | "Saída"; valor: number };
+type EvG = { id: string; titulo: string; inicio: string; fim: string | null; diaInteiro: boolean; local: string | null; link: string | null };
 type Vista = "mes" | "agenda" | "sessoes";
 
 const euro = (n: number) => Number(n).toLocaleString("pt-PT", { style: "currency", currency: "EUR" });
@@ -41,6 +42,8 @@ export function CalendarioView() {
   const [carregado, setCarregado] = useState(false);
   const [avisos, setAvisos] = useState<string[]>([]);
   const [edicao, setEdicao] = useState<Partial<Sessao> | null>(null);
+  const [eventosG, setEventosG] = useState<EvG[]>([]);
+  const [erroG, setErroG] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     const [s, p, t, l, f, c] = await Promise.all([
@@ -75,6 +78,24 @@ export function CalendarioView() {
     return () => window.removeEventListener("nordan:novo", h);
   }, [vista]);
 
+  // Google Calendar (só leitura): vai buscar o intervalo que o ecrã mostra (grelha do mês ou próximos 30 dias)
+  const celulas = useMemo(() => celulasMes(ano, mes0), [ano, mes0]);
+  const deG = vista === "mes" ? celulas[0] : hoje;
+  const ateG = vista === "mes" ? celulas[celulas.length - 1] : somaDias(hoje, 30);
+  const querG = vista !== "sessoes" && ligados.has("google");
+  useEffect(() => {
+    if (!querG) return;
+    let vivo = true;
+    fetch(`/api/google/eventos?de=${deG}&ate=${ateG}`)
+      .then((r) => r.json().catch(() => null))
+      .then((j: { ok: boolean; erro?: string; eventos?: EvG[] } | null) => {
+        if (!vivo) return;
+        if (j?.ok) { setEventosG(j.eventos ?? []); setErroG(null); } else { setEventosG([]); setErroG(j?.erro ?? "Resposta inesperada do servidor."); }
+      })
+      .catch(() => { if (vivo) { setEventosG([]); setErroG("Sem ligação ao servidor."); } });
+    return () => { vivo = false; };
+  }, [querG, deG, ateG]);
+
   const itens = useMemo<Item[]>(() => {
     const out: Item[] = [];
     const nomeCliente = (id: string) => clientes.find((c) => c.id === id)?.nome ?? null;
@@ -104,8 +125,23 @@ export function CalendarioView() {
       out.push({ key: "f" + m.id, tipo: "financas", data: m.data, hora: null, titulo: m.movimento,
         sub: `${m.tipo === "Entrada" ? "A receber" : "A pagar"} · ${euro(m.valor)}`, atrasado: m.data < hoje, destino: "/financas" });
     }
+    // eventos do Google; os que nasceram das sessões do painel já aparecem como sessões
+    const dasSessoes = new Set(sessoes.map((s) => s.google_event_id).filter(Boolean));
+    for (const e of eventosG) {
+      if (dasSessoes.has(e.id)) continue;
+      const ext = linkSeguro(e.link);
+      const sub = e.local || "Google Calendar";
+      if (e.diaInteiro) {
+        // fim exclusivo; limita a 31 dias para não encher o calendário
+        const fim = e.fim && e.fim > e.inicio ? e.fim : somaDias(e.inicio, 1);
+        for (let d = e.inicio, n = 0; d < fim && n < 31; d = somaDias(d, 1), n++)
+          out.push({ key: `g${e.id}${d}`, tipo: "google", data: d, hora: null, titulo: e.titulo, sub, atrasado: false, destino: null, externo: ext });
+      } else {
+        out.push({ key: "g" + e.id, tipo: "google", data: dataLisboa(e.inicio), hora: horaPt(e.inicio), titulo: e.titulo, sub, atrasado: false, destino: null, externo: ext });
+      }
+    }
     return out;
-  }, [sessoes, projetos, tarefas, leads, movs, clientes, hoje]);
+  }, [sessoes, projetos, tarefas, leads, movs, clientes, hoje, eventosG]);
 
   const contagem = useMemo(() => {
     const c = {} as Record<TipoItem, number>;
@@ -121,7 +157,6 @@ export function CalendarioView() {
     return m;
   }, [visiveis]);
 
-  const celulas = useMemo(() => celulasMes(ano, mes0), [ano, mes0]);
   const mesStr = `${ano}-${String(mes0 + 1).padStart(2, "0")}`;
   const noMes = celulas.filter((d) => d.startsWith(mesStr)).reduce((n, d) => n + (porDia[d]?.length ?? 0), 0);
 
@@ -133,7 +168,8 @@ export function CalendarioView() {
   const alternar = (k: TipoItem) => setLigados((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
   function abrir(i: Item) {
-    if (i.tipo === "sessao") setEdicao(sessoes.find((s) => s.id === i.sessaoId) ?? null);
+    if (i.tipo === "google") { if (i.externo) window.open(i.externo, "_blank", "noopener,noreferrer"); }
+    else if (i.tipo === "sessao") setEdicao(sessoes.find((s) => s.id === i.sessaoId) ?? null);
     else if (i.destino) router.push(i.destino);
   }
 
@@ -183,6 +219,7 @@ export function CalendarioView() {
           ))}
         </div>
         {avisos.map((a) => <p key={a} className="erro-box">{a}</p>)}
+        {querG && erroG && <p className="erro-box">Google Calendar: {erroG}</p>}
         {!carregado ? <div className="dica">A carregar…</div> : vista === "mes" ? (
           <div className="cal-corpo">
             <div className="card">
