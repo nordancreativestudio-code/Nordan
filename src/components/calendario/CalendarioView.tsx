@@ -44,6 +44,7 @@ export function CalendarioView() {
   const [edicao, setEdicao] = useState<Partial<Sessao> | null>(null);
   const [eventosG, setEventosG] = useState<EvG[]>([]);
   const [erroG, setErroG] = useState<string | null>(null);
+  const [semGoogle, setSemGoogle] = useState(false); // chaves do Google por configurar no servidor
 
   const carregar = useCallback(async () => {
     const [s, p, t, l, f, c] = await Promise.all([
@@ -88,9 +89,10 @@ export function CalendarioView() {
     let vivo = true;
     fetch(`/api/google/eventos?de=${deG}&ate=${ateG}`)
       .then((r) => r.json().catch(() => null))
-      .then((j: { ok: boolean; erro?: string; eventos?: EvG[] } | null) => {
+      .then((j: { ok: boolean; erro?: string; naoConfigurado?: boolean; eventos?: EvG[] } | null) => {
         if (!vivo) return;
-        if (j?.ok) { setEventosG(j.eventos ?? []); setErroG(null); } else { setEventosG([]); setErroG(j?.erro ?? "Resposta inesperada do servidor."); }
+        if (j?.ok) { setEventosG(j.eventos ?? []); setErroG(null); setSemGoogle(false); }
+        else { setEventosG([]); setSemGoogle(!!j?.naoConfigurado); setErroG(j?.naoConfigurado ? null : (j?.erro ?? "Resposta inesperada do servidor.")); }
       })
       .catch(() => { if (vivo) { setEventosG([]); setErroG("Sem ligação ao servidor."); } });
     return () => { vivo = false; };
@@ -219,7 +221,8 @@ export function CalendarioView() {
           ))}
         </div>
         {avisos.map((a) => <p key={a} className="erro-box">{a}</p>)}
-        {querG && erroG && <p className="erro-box">Google Calendar: {erroG}</p>}
+        {querG && semGoogle && <div className="dica" style={{ marginBottom: 10 }}>Google Calendar por ligar: faltam as chaves no servidor (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET e GOOGLE_REFRESH_TOKEN).</div>}
+        {querG && erroG && <p className="erro-box">{erroG}</p>}
         {!carregado ? <div className="dica">A carregar…</div> : vista === "mes" ? (
           <div className="cal-corpo">
             <div className="card">

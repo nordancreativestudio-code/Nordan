@@ -20,6 +20,6 @@ export async function GET(req: Request) {
   } catch (e) {
     const g = e instanceof GoogleErro;
     if (!g) console.error("[google/eventos]", e instanceof Error ? e.message : "erro desconhecido");
-    return Response.json({ ok: false, erro: g ? e.message : "Erro inesperado ao falar com o Google." }, { status: g && e.naoConfigurado ? 503 : 502 });
+    return Response.json({ ok: false, erro: g ? e.message : "Erro inesperado ao falar com o Google.", naoConfigurado: g && e.naoConfigurado }, { status: g && e.naoConfigurado ? 503 : 502 });
   }
 }
