@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { SessoesPainel } from "@/components/sessoes/SessoesPainel";
+import { CalendarioView } from "@/components/calendario/CalendarioView";
 
 export const metadata: Metadata = { title: "Calendário" };
 
 export default function Pagina() {
-  return <SessoesPainel escutarNovo />;
+  return <CalendarioView />;
 }
