@@ -117,3 +117,54 @@ export async function atualizarEvento(id: string, d: DadosEvento): Promise<strin
 export async function apagarEvento(id: string): Promise<void> {
   try { await pedir("DELETE", id); } catch (e) { if (!(e instanceof EventoInexistente)) throw e; }
 }
+
+export type EventoGoogle = {
+  id: string; titulo: string;
+  /** dia inteiro: "AAAA-MM-DD" (fim exclusivo); com hora: ISO */
+  inicio: string; fim: string | null; diaInteiro: boolean;
+  local: string | null; link: string | null;
+};
+
+/** Eventos do calendário principal entre duas datas ISO (só leitura). Ignora cancelados e os recusados pela conta. */
+export async function listarEventos(timeMin: string, timeMax: string): Promise<EventoGoogle[]> {
+  const token = await tokenAcesso();
+  const out: EventoGoogle[] = [];
+  let pagina: string | undefined;
+  for (let i = 0; i < 4; i++) {
+    const q = new URLSearchParams({
+      timeMin, timeMax, singleEvents: "true", orderBy: "startTime", maxResults: "250", showDeleted: "false",
+      fields: "nextPageToken,items(id,status,summary,start,end,location,htmlLink,attendees(self,responseStatus))",
+    });
+    if (pagina) q.set("pageToken", pagina);
+    let r: Response;
+    try {
+      r = await fetch(`${BASE}?${q}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+    } catch {
+      throw new GoogleErro("Não foi possível contactar o Google.");
+    }
+    if (!r.ok) {
+      const j = (await r.json().catch(() => ({}))) as { error?: { message?: string } };
+      throw new GoogleErro("O Google recusou o pedido: " + (j.error?.message ?? r.status).toString().slice(0, 200));
+    }
+    const j = (await r.json()) as {
+      nextPageToken?: string;
+      items?: { id: string; status?: string; summary?: string; location?: string; htmlLink?: string;
+        start?: { date?: string; dateTime?: string }; end?: { date?: string; dateTime?: string };
+        attendees?: { self?: boolean; responseStatus?: string }[] }[];
+    };
+    for (const e of j.items ?? []) {
+      if (e.status === "cancelled" || !e.start) continue;
+      if (e.attendees?.some((a) => a.self && a.responseStatus === "declined")) continue;
+      const diaInteiro = !!e.start.date;
+      const inicio = e.start.date ?? e.start.dateTime;
+      if (!inicio) continue;
+      out.push({
+        id: e.id, titulo: e.summary?.trim() || "(sem título)", inicio, diaInteiro,
+        fim: (e.end?.date ?? e.end?.dateTime) ?? null, local: e.location?.trim() || null, link: e.htmlLink ?? null,
+      });
+    }
+    pagina = j.nextPageToken;
+    if (!pagina) break;
+  }
+  return out;
+}
