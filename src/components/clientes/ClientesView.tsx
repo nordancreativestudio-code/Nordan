@@ -85,6 +85,8 @@ export function ClientesView() {
     dados.nome = form.nome.trim();
     dados.estado = form.estado || "Ativo";
     dados.avenca = !!form.avenca;
+    // só grava se a coluna existe (veio no select *) ou foi tocada; assim não falha antes da migração 0013
+    if (form.historico_visivel !== undefined) dados.historico_visivel = !!form.historico_visivel;
     const r = form.id
       ? await sb.from("clientes").update(dados).eq("id", form.id)
       : await sb.from("clientes").insert(dados);
@@ -168,6 +170,8 @@ export function ClientesView() {
               {ESTADOS_CLIENTE.map((s) => <option key={s}>{s}</option>)}
             </select></div>
           <label className="chk full"><input type="checkbox" checked={!!form.avenca} onChange={(e) => setForm((f) => ({ ...f, avenca: e.target.checked }))} />Cliente com avença (tem o formulário de planeamento mensal)</label>
+          <label className="chk full"><input type="checkbox" checked={!!form.historico_visivel} onChange={(e) => setForm((f) => ({ ...f, historico_visivel: e.target.checked }))} />Cliente regular: vê todo o histórico</label>
+          <div className="dica full" style={{ marginTop: -6 }}>Com isto ligado, o cliente vê no portal todos os projetos e tarefas, mesmo os não marcados como “Visível ao cliente”. Desligado, só vê os marcados.</div>
           <div className="fld"><label>Pessoa de contacto</label><input className="in" value={form.contacto ?? ""} onChange={(e) => set("contacto", e.target.value)} /></div>
           <div className="fld"><label>Telefone</label><input className="in" type="tel" value={form.telefone ?? ""} onChange={(e) => set("telefone", e.target.value)} /></div>
           <div className="fld"><label>Email</label><input className="in" type="email" value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} /></div>

@@ -15,7 +15,7 @@ export const ESTADOS_CLIENTE = ["Ativo", "Pontual", "Inativo"] as const;
 export type Cliente = {
   id: string; nome: string; setor: string | null; estado: (typeof ESTADOS_CLIENTE)[number];
   contacto: string | null; telefone: string | null; email: string | null; web: string | null;
-  nif: string | null; localidade: string | null; notas: string | null; avenca?: boolean;
+  nif: string | null; localidade: string | null; notas: string | null; avenca?: boolean; historico_visivel?: boolean;
 };
 export type Projeto = {
   id: string; cliente_id: string | null; nome: string; estado: Estado;
