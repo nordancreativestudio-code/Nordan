@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { EmBreve } from "@/components/EmBreve";
+import { SessoesPainel } from "@/components/sessoes/SessoesPainel";
 
 export const metadata: Metadata = { title: "Calendário" };
 
 export default function Pagina() {
-  return <EmBreve titulo="Calendário" texto="Calendário editorial e agenda." />;
+  return <SessoesPainel escutarNovo />;
 }

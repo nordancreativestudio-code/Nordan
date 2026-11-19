@@ -10,7 +10,7 @@ export function Top({ previa = false }: { previa?: boolean }) {
   const pathname = usePathname();
   const base = "/" + (pathname.split("/")[1] ?? "");
   const v = VMAP[base] ?? VMAP["/"];
-  const podeCriar = base === "/clientes" || base === "/projetos";
+  const podeCriar = base === "/clientes" || base === "/projetos" || base === "/calendario";
   if (previa)
     return (
       <header className="top">

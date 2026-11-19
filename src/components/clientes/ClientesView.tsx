@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { SelectOpcoes } from "@/components/SelectOpcoes";
 import { Gaveta } from "@/components/Gaveta";
 import { useToast } from "@/components/Toast";
+import { SessoesPainel } from "@/components/sessoes/SessoesPainel";
 import {
   ESTADOS_CLIENTE, SETORES, nul, tabelaEmFalta, dataCurta,
   type Cliente, type Projeto,
@@ -207,6 +208,10 @@ export function ClientesView() {
                 </div>
                 <div className="dica">Ao convidar, o cliente recebe logo no email o link de acesso ao portal. Só vê projetos marcados como “Visível ao cliente”.</div>
               </>)}
+            </div>
+            <div className="fld full"><label>Sessões</label>
+              <SessoesPainel clienteId={form.id} />
+              <div className="dica">O convite segue por Google Calendar para os emails deste cliente no portal.</div>
             </div>
             <div className="fld full"><label>Projetos ({doCliente.length})</label>
               {doCliente.length === 0 ? <div className="dica">Sem projetos para este cliente.</div> : (
