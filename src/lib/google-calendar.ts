@@ -40,11 +40,12 @@ async function tokenAcesso(): Promise<string> {
   } catch {
     throw new GoogleErro("Não foi possível contactar o Google.");
   }
-  const j = (await r.json().catch(() => ({}))) as { access_token?: string; expires_in?: number; error?: string };
+  const j = (await r.json().catch(() => ({}))) as { access_token?: string; expires_in?: number; error?: string; error_description?: string };
   if (!r.ok || !j.access_token) {
     throw new GoogleErro(j.error === "invalid_grant"
       ? "O acesso ao Google expirou ou foi revogado. É preciso gerar um novo refresh token."
-      : "O Google recusou a autenticação (" + (j.error ?? r.status) + ").");
+      : "O Google recusou a autenticação (" + (j.error ?? r.status) + (j.error_description ? ": " + j.error_description.slice(0, 120) : "") + ")."
+        + (j.error === "invalid_client" ? " Verifica GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET (completos, sem aspas nem espaços)." : ""));
   }
   cache = { token: j.access_token, expira: Date.now() + (j.expires_in ?? 3600) * 1000 };
   return j.access_token;
