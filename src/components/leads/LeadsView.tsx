@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { SelectOpcoes } from "@/components/SelectOpcoes";
 import { Gaveta } from "@/components/Gaveta";
@@ -31,6 +32,8 @@ const DAT = ["primeiro_contacto", "contacto_1", "contacto_2", "contacto_email", 
 export function LeadsView() {
   const [sb] = useState(() => createClient());
   const toast = useToast();
+  const router = useRouter();
+  const pedido = useSearchParams().get("lead");
   const [leads, setLeads] = useState<Lead[] | null>(null);
   const [emails, setEmails] = useState<Email[]>([]);
   const [fases, setFases] = useState<string[]>(FASES_BASE);
@@ -66,6 +69,13 @@ export function LeadsView() {
     window.addEventListener("nordan:novo", h);
     return () => window.removeEventListener("nordan:novo", h);
   }, [aba, fases]);
+
+  // ?lead=<id> (vindo do Calendário): abre a gaveta dessa lead
+  useEffect(() => {
+    if (!pedido || !leads) return;
+    const l = leads.find((x) => x.id === pedido);
+    Promise.resolve().then(() => { if (l) setForm(l); router.replace("/leads"); });
+  }, [pedido, leads, router]);
 
   const t = hoje();
   const filtradas = useMemo(() => {

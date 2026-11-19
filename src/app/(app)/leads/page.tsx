@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { LeadsView } from "@/components/leads/LeadsView";
 
 export const metadata: Metadata = { title: "Leads" };
 
 export default function Pagina() {
-  return <LeadsView />;
+  return (
+    <Suspense>
+      <LeadsView />
+    </Suspense>
+  );
 }
