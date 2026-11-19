@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { diaPt, horaPt } from "@/lib/sessoes";
 import { dataPt, fmtTempo, linkEmail, linkSeguro, linkWhatsApp, mesRotulo, primeiroDoMes } from "@/lib/tipos";
 import { ConteudoPortal, type Conteudo } from "./ConteudoPortal";
 import { FluxoWorkflow, type PassoModelo } from "./FluxoWorkflow";
@@ -19,6 +20,7 @@ type Detalhe = {
 };
 type Pagina = { id: string; pagina: string; titulo: string; texto: string | null; blocos: { tipo: string; titulo: string; descricao: string | null; url_drive: string | null }[] };
 type Contacto = { nome: string; telemovel: string | null; email: string | null };
+type SessaoPortal = { id: string; titulo: string; tipo: string | null; inicio: string; fim: string | null; local_ou_link: string | null; nota_cliente: string | null };
 type Paginas = { workflow: PassoModelo[]; paginas: Pagina[]; contactos: Contacto[] };
 
 const ABAS: [string, string][] = [["projetos", "Projetos"], ["workflow", "Workflow"], ["formulario", "Formulário"], ["ferramentas", "Ferramentas e Comunicação"]];
@@ -155,6 +157,7 @@ export function PortalView({ clienteId, previa, onVoltar }: { clienteId: string;
   const [projetos, setProjetos] = useState<ProjLista[]>([]);
   const [paginas, setPaginas] = useState<Paginas | null>(null);
   const [passos, setPassos] = useState<Passo[]>([]);
+  const [sessoes, setSessoes] = useState<SessaoPortal[]>([]);
   const [mes, setMes] = useState(() => primeiroDoMes(1));
 
   const param = useCallback((k: string, v: string | null) => {
@@ -165,14 +168,16 @@ export function PortalView({ clienteId, previa, onVoltar }: { clienteId: string;
   }, [sp, router, pathname]);
 
   const carregar = useCallback(async () => {
-    const [c, pr, pg] = await Promise.all([
+    const [c, pr, pg, se] = await Promise.all([
       sb.rpc("portal_cliente", { p_cliente: clienteId }),
       sb.rpc("portal_projetos", { p_cliente: clienteId }),
       sb.rpc("portal_paginas"),
+      sb.rpc("portal_sessoes", { p_cliente: clienteId }),
     ]);
     setCliente(c.error ? null : (c.data as Cliente | null));
     setProjetos(pr.error ? [] : (pr.data as ProjLista[]));
     setPaginas(pg.error ? null : (pg.data as Paginas | null));
+    setSessoes(se.error ? [] : (se.data as SessaoPortal[])); // sem a migração 0014 simplesmente não há secção
   }, [sb, clienteId]);
   useEffect(() => { Promise.resolve().then(carregar); }, [carregar]);
 
@@ -238,7 +243,29 @@ export function PortalView({ clienteId, previa, onVoltar }: { clienteId: string;
 
       {aba === "projetos" && (projetoParam && projetos.some((p) => p.id === projetoParam)
         ? <ProjetoDetalhe key={projetoParam} id={projetoParam} previa={previa} onVoltar={() => param("projeto", null)} />
-        : projetos.length === 0 ? semProjetos : (
+        : <>
+        {sessoes.length > 0 && (
+          <div className="card" style={{ marginBottom: 14 }}><h3>Próximas sessões</h3>
+            <div className="lista">
+              {sessoes.map((x) => {
+                const link = linkSeguro(x.local_ou_link);
+                return (
+                  <div className="li" key={x.id} style={{ flexWrap: "wrap", alignItems: "flex-start" }}>
+                    <span className="nm" style={{ whiteSpace: "normal", flexBasis: 240 }}>
+                      <b style={{ fontWeight: 500 }}>{x.titulo}</b>
+                      <span className="dica" style={{ display: "block" }}>{diaPt(x.inicio)} · {horaPt(x.inicio)}{x.fim ? `–${horaPt(x.fim)}` : ""}</span>
+                      {x.local_ou_link && !link && <span className="dica" style={{ display: "block" }}>{x.local_ou_link}</span>}
+                      {x.nota_cliente && <span className="dica" style={{ display: "block", whiteSpace: "pre-wrap" }}>{x.nota_cliente}</span>}
+                    </span>
+                    {x.tipo && <span className="pill">{x.tipo}</span>}
+                    {link && <a className="btn sm" href={link} target="_blank" rel="noopener noreferrer">Abrir link ↗</a>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {projetos.length === 0 ? semProjetos : (
           <>
             {emCurso.length > 0 && (<>
               {concluidos.length > 0 && <div className="grpcab">Em curso <span className="ct">{emCurso.length}</span></div>}
@@ -250,7 +277,7 @@ export function PortalView({ clienteId, previa, onVoltar }: { clienteId: string;
               </details>
             )}
           </>
-        ))}
+        )}</>)}
 
       {aba === "workflow" && (
         <>
