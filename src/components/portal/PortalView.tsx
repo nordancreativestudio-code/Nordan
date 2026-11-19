@@ -9,7 +9,7 @@ import { FluxoWorkflow, type PassoModelo } from "./FluxoWorkflow";
 import { FormularioPortal } from "./FormularioPortal";
 
 type Cliente = { id: string; nome: string; avenca: boolean };
-type ProjLista = { id: string; nome: string; tipo: string | null; prazo_estimado: string | null; passo_atual: string | null; passo_tipo: string | null; passos_total: number; passos_feitos: number; por_aprovar: number };
+type ProjLista = { id: string; nome: string; tipo: string | null; prazo_estimado: string | null; passo_atual: string | null; passo_tipo: string | null; passos_total: number; passos_feitos: number; por_aprovar: number; estado?: string };
 type Passo = { id: string; titulo: string; frase: string | null; tipo: string; modelo_id: string | null; data_prevista: string | null; data_real: string | null; numero: string | null };
 type Detalhe = {
   projeto: { id: string; nome: string; tipo: string | null; prazo_estimado: string | null; link_entrega: string | null };
@@ -191,10 +191,29 @@ export function PortalView({ clienteId, previa, onVoltar }: { clienteId: string;
   if (cliente === undefined) return <div className="dica">A carregar…</div>;
   if (!cliente) return <div className="card"><div className="empty"><b>Sem acesso</b>Este cliente não existe ou não tens acesso a ele.</div></div>;
 
+  // "Concluído" é o estado interno do projeto; sem estado (migração 0013 por correr) tudo conta como em curso
+  const concluidos = projetos.filter((p) => p.estado === "Concluído");
+  const emCurso = projetos.filter((p) => p.estado !== "Concluído");
+  const cartao = (p: ProjLista) => (
+    <button key={p.id} type="button" className="card pj" onClick={() => param("projeto", p.id)}>
+      <b style={{ fontSize: 16 }}>{p.nome}</b>
+      <span className="dica">{p.tipo}</span>
+      {p.passo_atual && <span className={"pill " + (p.passo_tipo === "cliente" ? "lime" : "")}>{p.passo_atual}{p.passo_tipo === "cliente" ? " · a tua parte" : ""}</span>}
+      {p.passos_total > 0 && <span className="bar-n"><span className="bar"><i style={{ width: `${(p.passos_feitos / p.passos_total) * 100}%` }} /></span><span className="num">{p.passos_feitos}/{p.passos_total}</span></span>}
+      <span className="dica">{p.prazo_estimado ? `Prazo estimado: ${dataPt(p.prazo_estimado)}` : ""}</span>
+      {p.por_aprovar > 0 && <span className="pill amber">{p.por_aprovar} para aprovar</span>}
+    </button>
+  );
+  const grelha = { gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))" };
   const seletor = projetos.length > 1 && (
     <div className="fld" style={{ maxWidth: 320, marginBottom: 12 }}><label>Projeto</label>
       <select className="in" value={projetoId ?? ""} onChange={(e) => param("projeto", e.target.value)}>
-        {projetos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+        {concluidos.length === 0
+          ? emCurso.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)
+          : (<>
+              {emCurso.length > 0 && <optgroup label="Em curso">{emCurso.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}</optgroup>}
+              <optgroup label="Concluídos">{concluidos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}</optgroup>
+            </>)}
       </select></div>
   );
   const semProjetos = <div className="card"><div className="empty"><b>Ainda não há projetos</b>Quando houver um projeto visível, aparece aqui.</div></div>;
@@ -220,18 +239,17 @@ export function PortalView({ clienteId, previa, onVoltar }: { clienteId: string;
       {aba === "projetos" && (projetoParam && projetos.some((p) => p.id === projetoParam)
         ? <ProjetoDetalhe key={projetoParam} id={projetoParam} previa={previa} onVoltar={() => param("projeto", null)} />
         : projetos.length === 0 ? semProjetos : (
-          <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))" }}>
-            {projetos.map((p) => (
-              <button key={p.id} type="button" className="card pj" onClick={() => param("projeto", p.id)}>
-                <b style={{ fontSize: 16 }}>{p.nome}</b>
-                <span className="dica">{p.tipo}</span>
-                {p.passo_atual && <span className={"pill " + (p.passo_tipo === "cliente" ? "lime" : "")}>{p.passo_atual}{p.passo_tipo === "cliente" ? " · a tua parte" : ""}</span>}
-                {p.passos_total > 0 && <span className="bar-n"><span className="bar"><i style={{ width: `${(p.passos_feitos / p.passos_total) * 100}%` }} /></span><span className="num">{p.passos_feitos}/{p.passos_total}</span></span>}
-                <span className="dica">{p.prazo_estimado ? `Prazo estimado: ${dataPt(p.prazo_estimado)}` : ""}</span>
-                {p.por_aprovar > 0 && <span className="pill amber">{p.por_aprovar} para aprovar</span>}
-              </button>
-            ))}
-          </div>
+          <>
+            {emCurso.length > 0 && (<>
+              {concluidos.length > 0 && <div className="grpcab">Em curso <span className="ct">{emCurso.length}</span></div>}
+              <div className="grid" style={grelha}>{emCurso.map(cartao)}</div>
+            </>)}
+            {concluidos.length > 0 && (
+              <details className="grp"><summary>Concluídos <span className="ct">{concluidos.length}</span></summary>
+                <div className="grid" style={grelha}>{concluidos.map(cartao)}</div>
+              </details>
+            )}
+          </>
         ))}
 
       {aba === "workflow" && (
