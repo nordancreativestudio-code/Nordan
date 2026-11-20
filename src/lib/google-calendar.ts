@@ -26,7 +26,9 @@ export type DadosEvento = {
 let cache: { token: string; expira: number } | null = null;
 
 async function tokenAcesso(): Promise<string> {
-  const id = process.env.GOOGLE_CLIENT_ID, segredo = process.env.GOOGLE_CLIENT_SECRET, refresh = process.env.GOOGLE_REFRESH_TOKEN;
+  // tolera erros de colagem (espaços, quebras de linha, aspas à volta) nos valores postos na Vercel
+  const limpa = (v?: string) => v?.trim().replace(/^["']|["']$/g, "").trim() || undefined;
+  const id = limpa(process.env.GOOGLE_CLIENT_ID), segredo = limpa(process.env.GOOGLE_CLIENT_SECRET), refresh = limpa(process.env.GOOGLE_REFRESH_TOKEN);
   if (!id || !segredo || !refresh) throw new GoogleErro("Google Calendar não está configurado no servidor.", true);
   if (cache && cache.expira > Date.now() + 60_000) return cache.token;
   let r: Response;
