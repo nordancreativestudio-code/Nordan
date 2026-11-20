@@ -110,25 +110,23 @@ export default async function Inicio() {
         <div className="kpi"><div className="v num">{porEstado("Para fazer").length}</div><div className="n">Para fazer</div></div>
         <div className="kpi"><div className="v num">{porEstado("Standby").length}</div><div className="n">Em standby</div></div>
       </div>
-      {temFin && (
+      {temFin && (<>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}><OlhoSaldo /></div>
         <div className="grid kpis">
-          <div style={{ position: "relative", display: "flex", flexDirection: "column" }}>
-            <Link href="/financas" className="kpi hi clic" style={{ textDecoration: "none", color: "inherit", flex: 1 }}>
-              <div className="v num"><ValorSaldo valor={Number(cfg.data?.saldo) || 0} /></div><div className="n">Conta bancária</div>
-            </Link>
-            <OlhoSaldo />
-          </div>
-          <Link href="/financas" className="kpi clic" style={{ textDecoration: "none", color: "inherit" }}>
-            <div className="v num">{euro(entMes)}</div><div className="n">Entradas do mês</div>
+          <Link href="/financas" className="kpi hi clic" style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="v num"><ValorSaldo valor={Number(cfg.data?.saldo) || 0} /></div><div className="n">Conta bancária</div>
           </Link>
           <Link href="/financas" className="kpi clic" style={{ textDecoration: "none", color: "inherit" }}>
-            <div className="v num">{euro(saiMes)}</div><div className="n">Saídas do mês</div>
+            <div className="v num"><ValorSaldo valor={entMes} /></div><div className="n">Entradas do mês</div>
           </Link>
           <Link href="/financas" className="kpi clic" style={{ textDecoration: "none", color: "inherit" }}>
-            <div className="v num">{euro(aReceber)}</div><div className="n">A receber</div>
+            <div className="v num"><ValorSaldo valor={saiMes} /></div><div className="n">Saídas do mês</div>
+          </Link>
+          <Link href="/financas" className="kpi clic" style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="v num"><ValorSaldo valor={aReceber} /></div><div className="n">A receber</div>
           </Link>
         </div>
-      )}
+      </>)}
       {temLeads && (
         <div className="grid kpis">
           <Link href="/leads" className="kpi clic" style={{ textDecoration: "none", color: "inherit" }}>

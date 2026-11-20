@@ -29,14 +29,12 @@ export function ValorSaldo({ valor }: { valor: number }) {
   return <>{visivel ? euro(valor) : "•••••• €"}</>;
 }
 
-/** Botão do olho, para pôr no canto de um cartão com o saldo (fora de qualquer outro botão ou link). */
+/** Botão único que mostra ou esconde todos os valores de uma página. */
 export function OlhoSaldo() {
   const { visivel, alternar } = useSaldoVisivel();
   return (
-    <button type="button" className="btn sm" onClick={alternar} aria-pressed={visivel}
-      aria-label={visivel ? "Esconder o saldo" : "Mostrar o saldo"} title={visivel ? "Esconder o saldo" : "Mostrar o saldo"}
-      style={{ position: "absolute", top: 8, right: 8, zIndex: 2, padding: "3px 8px" }}>
-      {visivel ? "Esconder" : "Mostrar"}
+    <button type="button" className="btn sm" onClick={alternar} aria-pressed={visivel}>
+      {visivel ? "Esconder valores" : "Mostrar valores"}
     </button>
   );
 }
