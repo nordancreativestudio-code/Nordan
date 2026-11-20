@@ -1,5 +1,6 @@
 "use client";
 
+import { OlhoSaldo, ValorSaldo } from "@/components/SaldoOculto";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { SelectOpcoes } from "@/components/SelectOpcoes";
@@ -191,11 +192,14 @@ export function FinancasView() {
   return (
     <div className="grid" style={{ gap: 14 }}>
       <div className="grid kpis">
-        <button type="button" className="kpi hi clic" style={{ textAlign: "left" }} onClick={() => setSaldoForm(String(cfg.saldo).replace(".", ","))}>
-          <div className="n">Conta bancária</div>
-          <div className="v num">{euro(cfg.saldo)}</div>
-          <div className="n">{cfg.saldo_data ? `atualizado ${dataPt(cfg.saldo_data)} · ` : ""}clica para acertar</div>
-        </button>
+        <div style={{ position: "relative", display: "flex", flexDirection: "column" }}>
+          <button type="button" className="kpi hi clic" style={{ textAlign: "left", flex: 1 }} onClick={() => setSaldoForm(String(cfg.saldo).replace(".", ","))}>
+            <div className="n">Conta bancária</div>
+            <div className="v num"><ValorSaldo valor={cfg.saldo} /></div>
+            <div className="n">{cfg.saldo_data ? `atualizado ${dataPt(cfg.saldo_data)} · ` : ""}clica para acertar</div>
+          </button>
+          <OlhoSaldo />
+        </div>
         <div className="kpi"><div className="n">Entradas · {rotuloMes(mes)}</div><div className="v num">{euro(totais.ent)}</div>
           <div className="n">{totais.entPend > 0 ? `${euro(totais.entPend)} por receber` : "tudo recebido"}</div></div>
         <div className="kpi"><div className="n">Saídas · {rotuloMes(mes)}</div><div className="v num">{euro(totais.sai)}</div>
@@ -296,7 +300,7 @@ export function FinancasView() {
             <span className="tot" style={{ color: Math.abs(diferenca) < 1 ? "var(--lime)" : "var(--amber)" }}>{Math.abs(diferenca) < 1 ? "bate certo" : "diferença"}</span>
           </h3>
           <div className="lista">
-            <div className="li"><span className="nm">O que diz a conta</span><b className="num">{euro(cfg.saldo)}</b></div>
+            <div className="li"><span className="nm">O que diz a conta</span><b className="num"><ValorSaldo valor={cfg.saldo} /></b></div>
             <div className="li"><span className="nm">Soma dos movimentos pagos / recebidos</span><b className="num">{euro(somaRegistada)}</b></div>
             <div className="li"><span className="nm">Diferença</span><b className="num" style={{ color: Math.abs(diferenca) < 1 ? "var(--lime)" : "var(--amber)" }}>{euro(diferenca)}</b></div>
           </div>

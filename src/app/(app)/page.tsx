@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { dataCurta, tabelaEmFalta } from "@/lib/tipos";
+import { OlhoSaldo, ValorSaldo } from "@/components/SaldoOculto";
 
 type Linha = {
   id: string; nome: string; estado: string; prioridade: string; responsavel: string;
@@ -111,9 +112,12 @@ export default async function Inicio() {
       </div>
       {temFin && (
         <div className="grid kpis">
-          <Link href="/financas" className="kpi hi clic" style={{ textDecoration: "none", color: "inherit" }}>
-            <div className="v num">{euro(Number(cfg.data?.saldo) || 0)}</div><div className="n">Conta bancária</div>
-          </Link>
+          <div style={{ position: "relative", display: "flex", flexDirection: "column" }}>
+            <Link href="/financas" className="kpi hi clic" style={{ textDecoration: "none", color: "inherit", flex: 1 }}>
+              <div className="v num"><ValorSaldo valor={Number(cfg.data?.saldo) || 0} /></div><div className="n">Conta bancária</div>
+            </Link>
+            <OlhoSaldo />
+          </div>
           <Link href="/financas" className="kpi clic" style={{ textDecoration: "none", color: "inherit" }}>
             <div className="v num">{euro(entMes)}</div><div className="n">Entradas do mês</div>
           </Link>
