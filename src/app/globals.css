@@ -299,6 +299,8 @@ select.in{appearance:none;background-image:linear-gradient(45deg,transparent 50%
   /* barra de navegação: respeita o entalhe e desliza com o dedo */
   .rail{padding-top:calc(9px + env(safe-area-inset-top));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
   .navlist{flex:none}
+  .brand{width:auto;flex:none;padding:0 8px 0 0}
+  .rail{min-height:56px}
   .nav{min-height:36px}
   /* topo: quebra em linhas em vez de transbordar */
   .top{height:auto;min-height:52px;flex-wrap:wrap;gap:8px;padding:8px max(14px,env(safe-area-inset-right)) 8px max(14px,env(safe-area-inset-left))}
