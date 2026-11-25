@@ -14,7 +14,7 @@ import {
   type Estado, type Projeto, type Registo, type Tarefa, type TempoTarefa,
 } from "@/lib/tipos";
 
-type CliMin = { id: string; nome: string };
+type CliMin = { id: string; nome: string; estado?: string };
 type Form = Partial<Projeto>;
 const COR: Record<Estado, string> = {
   "Para fazer": "var(--faint)", "Em andamento": "var(--sky)", Standby: "var(--moss)",
@@ -51,7 +51,7 @@ export function ProjetosView() {
   const carregar = useCallback(async () => {
     const [p, c, t, rg, eu, tt] = await Promise.all([
       sb.from("projetos").select("*").order("ordem").order("criado_em"),
-      sb.from("clientes").select("id,nome").order("nome"),
+      sb.from("clientes").select("id,nome,estado").order("nome"),
       sb.from("tarefas").select("*").order("ordem").order("criado_em"),
       sb.from("registos_tempo").select("id,tarefa_id,utilizador_id,inicio,fim").order("inicio"),
       sb.auth.getUser(),
@@ -312,7 +312,7 @@ export function ProjetosView() {
           <div className="fld"><label>Cliente</label>
             <select className="in" value={form.cliente_id ?? ""} onChange={(e) => set("cliente_id", e.target.value)}>
               <option value="">—</option>
-              {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              {clientes.filter((c) => c.estado !== "Inativo" || c.id === form.cliente_id).map((c) => <option key={c.id} value={c.id}>{c.nome}{c.estado === "Inativo" ? " (inativo)" : ""}</option>)}
             </select></div>
           <div className="row2">
             <div className="fld"><label>Estado</label>
